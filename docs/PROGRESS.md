@@ -34,6 +34,7 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 - [x] Task 13: Task B vector store integration
 - [x] Task 14: Dataset-specific ingestion helpers
 - [x] Task 15: Vector store persistence
+- [x] Task 16: Dataset ingestion CLI
 
 ## Task Logs
 
@@ -253,4 +254,13 @@ Status: Done
 Notes:
 - Added save/load helpers for vector store JSON snapshots
 - Added persistence smoke test
+- Tests: python -m pytest backend/tests
+
+### Phase 3 Task 16: Dataset ingestion CLI
+
+Status: Done
+
+Notes:
+- Added CLI to ingest dataset JSONL and persist vector store
+- Added CLI smoke test
 - Tests: python -m pytest backend/tests
