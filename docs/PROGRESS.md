@@ -6,7 +6,7 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 
 - [x] Task 1: Data loaders + temporal split
 - [x] Task 2: Signal extraction (rating stats, stylometry, value keywords)
-- [ ] Task 3: Initial profile schema + profile builder
+- [x] Task 3: Initial profile schema + profile builder
 - [ ] Task 4: FastAPI endpoints wiring (profile + task stubs)
 - [ ] Task 5: Smoke tests
 
@@ -30,4 +30,13 @@ Status: Done
 Notes:
 - Added rating stats and stylometry extraction
 - Added value keyword counters for food, service, price, atmosphere
+- Tests: python -m pytest backend/tests
+
+### Task 3: Initial profile schema + profile builder
+
+Status: Done
+
+Notes:
+- Added PsychologicalProfile schema and builder
+- Includes rating stats, stylometry, and value keyword signals
 - Tests: python -m pytest backend/tests
