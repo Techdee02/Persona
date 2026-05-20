@@ -15,6 +15,7 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 - [x] Task 1: Deterministic mode + profile caching
 - [x] Task 2: Structured logging + tracing
 - [x] Task 3: Multi-angle retrieval (vector-based)
+- [x] Task 4: Rating calibration refinement
 
 ## Task Logs
 
@@ -90,4 +91,13 @@ Status: Done
 Notes:
 - Added vector-based multi-angle retrieval with cosine similarity
 - Supports weighted query vectors
+- Tests: python -m pytest backend/tests
+
+### Phase 2 Task 4: Rating calibration refinement
+
+Status: Done
+
+Notes:
+- Added rating calibration using user vs population distributions
+- Provides calibrated rating with clamping
 - Tests: python -m pytest backend/tests
