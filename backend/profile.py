@@ -11,6 +11,7 @@ from .signal_extraction import (
     extract_stylometry,
     extract_value_keywords,
 )
+from .trajectory import TrajectoryStats, extract_trajectory
 
 
 @dataclass(frozen=True)
@@ -19,6 +20,7 @@ class PsychologicalProfile:
     rating_stats: RatingStats
     stylometry: StylometryStats
     value_keywords: Dict[str, int]
+    trajectory: TrajectoryStats
 
     def to_dict(self) -> Dict[str, object]:
         return {
@@ -26,6 +28,7 @@ class PsychologicalProfile:
             "rating_stats": asdict(self.rating_stats),
             "stylometry": asdict(self.stylometry),
             "value_keywords": self.value_keywords,
+            "trajectory": asdict(self.trajectory),
         }
 
 
@@ -33,10 +36,12 @@ def build_profile(user_id: str, records: list[InteractionRecord]) -> Psychologic
     rating_stats = extract_rating_stats(records)
     stylometry = extract_stylometry(records)
     value_keywords = extract_value_keywords(records)
+    trajectory = extract_trajectory(records)
 
     return PsychologicalProfile(
         user_id=user_id,
         rating_stats=rating_stats,
         stylometry=stylometry,
         value_keywords=value_keywords,
+        trajectory=trajectory,
     )

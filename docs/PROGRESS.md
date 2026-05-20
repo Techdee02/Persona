@@ -17,6 +17,10 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 - [x] Task 3: Multi-angle retrieval (vector-based)
 - [x] Task 4: Rating calibration refinement
 
+## Phase 3 Checklist
+
+- [x] Task 1: Living trajectory features
+
 ## Task Logs
 
 ### Task 1: Data loaders + temporal split
@@ -100,4 +104,13 @@ Status: Done
 Notes:
 - Added rating calibration using user vs population distributions
 - Provides calibrated rating with clamping
+- Tests: python -m pytest backend/tests
+
+### Phase 3 Task 1: Living trajectory features
+
+Status: Done
+
+Notes:
+- Added trajectory stats comparing early vs recent behavior
+- Integrated trajectory into the psychological profile
 - Tests: python -m pytest backend/tests
