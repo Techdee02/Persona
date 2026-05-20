@@ -8,7 +8,7 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 - [x] Task 2: Signal extraction (rating stats, stylometry, value keywords)
 - [x] Task 3: Initial profile schema + profile builder
 - [x] Task 4: FastAPI endpoints wiring (profile + task stubs)
-- [ ] Task 5: Smoke tests
+- [x] Task 5: Smoke tests
 
 ## Task Logs
 
@@ -48,4 +48,12 @@ Status: Done
 Notes:
 - Added FastAPI app with health, profile build, and task stubs
 - Added API smoke tests for health and profile build
+- Tests: python -m pytest backend/tests
+
+### Task 5: Smoke tests
+
+Status: Done
+
+Notes:
+- Added integration smoke tests for profile and task stubs
 - Tests: python -m pytest backend/tests
