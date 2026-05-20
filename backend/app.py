@@ -5,6 +5,7 @@ import uuid
 from .data.schema import InteractionRecord
 from .logging_utils import configure_logging
 from .services.profile_service import ProfileService
+from .task_a_service import TaskAService
 from .task_b_service import TaskBService
 from .retrieval import RetrievalItem
 import numpy as np
@@ -14,6 +15,7 @@ logger = logging.getLogger("persona.api")
 
 app = FastAPI(title="Persona API", version="0.1.0")
 profile_service = ProfileService()
+task_a_service = TaskAService(profile_service=profile_service)
 task_b_service = TaskBService(profile_service=profile_service)
 
 
@@ -59,11 +61,51 @@ def build_profile_endpoint(payload: dict) -> dict:
 
 
 @app.post("/task-a/simulate")
-def task_a_stub() -> dict:
-    return {
-        "status": "stub",
-        "message": "Task A pipeline will be added in Phase 2.",
-    }
+def task_a_simulate(payload: dict) -> dict:
+    user_id = str(payload.get("user_id", "")).strip()
+    records = payload.get("records", [])
+    target_item = payload.get("target_item", {})
+    population_records = payload.get("population_records", None)
+
+    if not user_id:
+        raise HTTPException(status_code=400, detail="user_id is required")
+    if not target_item:
+        raise HTTPException(status_code=400, detail="target_item is required")
+
+    parsed_records = []
+    for record in records:
+        parsed_records.append(
+            InteractionRecord(
+                user_id=user_id,
+                item_id=str(record.get("item_id", "")).strip(),
+                rating=float(record.get("rating", 0.0)),
+                review_text=str(record.get("review_text", "")).strip(),
+                timestamp=str(record.get("timestamp", "")).strip() or None,
+                source=str(record.get("source", "")).strip() or "unknown",
+            )
+        )
+
+    parsed_population = None
+    if population_records is not None:
+        parsed_population = []
+        for record in population_records:
+            parsed_population.append(
+                InteractionRecord(
+                    user_id=str(record.get("user_id", user_id)).strip(),
+                    item_id=str(record.get("item_id", "")).strip(),
+                    rating=float(record.get("rating", 0.0)),
+                    review_text=str(record.get("review_text", "")).strip(),
+                    timestamp=str(record.get("timestamp", "")).strip() or None,
+                    source=str(record.get("source", "")).strip() or "unknown",
+                )
+            )
+
+    return task_a_service.simulate_review(
+        user_id=user_id,
+        records=parsed_records,
+        target_item=target_item,
+        population_records=parsed_population,
+    )
 
 
 @app.post("/task-b/recommend")

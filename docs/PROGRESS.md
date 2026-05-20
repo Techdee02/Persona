@@ -26,6 +26,7 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 - [x] Task 5: Agent/tool-calling scaffold
 - [x] Task 6: Task B endpoint integration (non-LLM)
 - [x] Task 7: Agent tool definitions
+- [x] Task 8: Task A endpoint integration (non-LLM)
 
 ## Task Logs
 
@@ -173,4 +174,13 @@ Status: Done
 Notes:
 - Added tool registry definitions for profile, axes, retrieval, scoring
 - Added basic registry test
+- Tests: python -m pytest backend/tests
+
+### Phase 3 Task 8: Task A endpoint integration (non-LLM)
+
+Status: Done
+
+Notes:
+- Wired Task A endpoint to rating calibration and profile stats
+- Added endpoint test with target item payload
 - Tests: python -m pytest backend/tests

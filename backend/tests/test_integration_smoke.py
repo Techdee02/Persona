@@ -26,8 +26,7 @@ def test_profile_build_missing_user_id():
 
 def test_task_a_stub():
     response = client.post("/task-a/simulate", json={})
-    assert response.status_code == 200
-    assert response.json()["status"] == "stub"
+    assert response.status_code == 400
 
 
 def test_task_b_stub():
