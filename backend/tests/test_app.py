@@ -9,6 +9,7 @@ def test_health():
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
+    assert "X-Trace-Id" in response.headers
 
 
 def test_profile_build():

@@ -13,6 +13,7 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 ## Phase 2 Checklist
 
 - [x] Task 1: Deterministic mode + profile caching
+- [x] Task 2: Structured logging + tracing
 
 ## Task Logs
 
@@ -70,4 +71,13 @@ Notes:
 - Added TTL cache for profiles with max size and TTL controls
 - Added app config for deterministic mode and cache settings
 - Profile endpoint now uses cache-aware service
+- Tests: python -m pytest backend/tests
+
+### Phase 2 Task 2: Structured logging + tracing
+
+Status: Done
+
+Notes:
+- Added trace id middleware with response header
+- Added logging config with trace id filter
 - Tests: python -m pytest backend/tests

@@ -1,10 +1,27 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
+import logging
+import uuid
 
 from .data.schema import InteractionRecord
+from .logging_utils import configure_logging
 from .services.profile_service import ProfileService
+
+configure_logging()
+logger = logging.getLogger("persona.api")
 
 app = FastAPI(title="Persona API", version="0.1.0")
 profile_service = ProfileService()
+
+
+@app.middleware("http")
+async def add_trace_id(request: Request, call_next):
+    trace_id = request.headers.get("X-Trace-Id") or str(uuid.uuid4())
+    request.state.trace_id = trace_id
+
+    response: Response = await call_next(request)
+    response.headers["X-Trace-Id"] = trace_id
+    logger.info("request_completed", extra={"trace_id": trace_id})
+    return response
 
 
 @app.get("/health")
