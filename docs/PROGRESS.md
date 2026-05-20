@@ -30,6 +30,7 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 - [x] Task 9: OpenAI LLM scaffold and agent endpoint
 - [x] Task 10: Task A LLM review scaffold
 - [x] Task 11: Embeddings pipeline and vector store
+- [x] Task 12: Embedding ingestion script
 
 ## Task Logs
 
@@ -213,4 +214,13 @@ Status: Done
 Notes:
 - Added sentence-transformers embedding helper
 - Added in-memory vector store for local retrieval
+- Tests: python -m pytest backend/tests
+
+### Phase 3 Task 12: Embedding ingestion script
+
+Status: Done
+
+Notes:
+- Added JSONL ingestion to build vector store from dataset fields
+- Added ingestion smoke test
 - Tests: python -m pytest backend/tests
