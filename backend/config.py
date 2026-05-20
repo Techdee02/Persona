@@ -9,6 +9,13 @@ class DatasetPaths:
     goodreads: str
 
 
+@dataclass(frozen=True)
+class AppConfig:
+    deterministic_mode: bool
+    profile_cache_ttl_seconds: int
+    profile_cache_max_size: int
+
+
 def _get_env(name: str) -> str:
     value = os.getenv(name, "").strip()
     if not value:
@@ -22,3 +29,25 @@ def dataset_paths_from_env() -> DatasetPaths:
         amazon=_get_env("DATASET_AMAZON_PATH"),
         goodreads=_get_env("DATASET_GOODREADS_PATH"),
     )
+
+
+def app_config_from_env() -> AppConfig:
+    return AppConfig(
+        deterministic_mode=_get_bool_env("DETERMINISTIC_MODE", default=False),
+        profile_cache_ttl_seconds=_get_int_env("PROFILE_CACHE_TTL_SECONDS", default=3600),
+        profile_cache_max_size=_get_int_env("PROFILE_CACHE_MAX_SIZE", default=1000),
+    )
+
+
+def _get_int_env(name: str, default: int) -> int:
+    value = os.getenv(name, "").strip()
+    if not value:
+        return default
+    return int(value)
+
+
+def _get_bool_env(name: str, default: bool) -> bool:
+    value = os.getenv(name, "").strip().lower()
+    if not value:
+        return default
+    return value in {"1", "true", "yes", "y"}

@@ -10,6 +10,10 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 - [x] Task 4: FastAPI endpoints wiring (profile + task stubs)
 - [x] Task 5: Smoke tests
 
+## Phase 2 Checklist
+
+- [x] Task 1: Deterministic mode + profile caching
+
 ## Task Logs
 
 ### Task 1: Data loaders + temporal split
@@ -56,4 +60,14 @@ Status: Done
 
 Notes:
 - Added integration smoke tests for profile and task stubs
+- Tests: python -m pytest backend/tests
+
+### Phase 2 Task 1: Deterministic mode + profile caching
+
+Status: Done
+
+Notes:
+- Added TTL cache for profiles with max size and TTL controls
+- Added app config for deterministic mode and cache settings
+- Profile endpoint now uses cache-aware service
 - Tests: python -m pytest backend/tests

@@ -1,9 +1,10 @@
 from fastapi import FastAPI, HTTPException
 
-from .profile import build_profile
 from .data.schema import InteractionRecord
+from .services.profile_service import ProfileService
 
 app = FastAPI(title="Persona API", version="0.1.0")
+profile_service = ProfileService()
 
 
 @app.get("/health")
@@ -32,7 +33,7 @@ def build_profile_endpoint(payload: dict) -> dict:
             )
         )
 
-    profile = build_profile(user_id, parsed_records)
+    profile = profile_service.build_profile_cached(user_id, parsed_records)
     return profile.to_dict()
 
 
