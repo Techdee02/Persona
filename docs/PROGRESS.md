@@ -21,6 +21,7 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 
 - [x] Task 1: Living trajectory features
 - [x] Task 2: Nigerian English detection signals
+- [x] Task 3: Preference axis extraction
 
 ## Task Logs
 
@@ -123,4 +124,13 @@ Status: Done
 Notes:
 - Added cultural signal extraction with pidgin term detection
 - Added Nigerian English index and code-switching flag to profile
+- Tests: python -m pytest backend/tests
+
+### Phase 3 Task 3: Preference axis extraction
+
+Status: Done
+
+Notes:
+- Added preference axis extraction from profile signals
+- Includes value priorities, rating bias, and cultural register
 - Tests: python -m pytest backend/tests
