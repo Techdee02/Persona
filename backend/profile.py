@@ -11,6 +11,7 @@ from .signal_extraction import (
     extract_stylometry,
     extract_value_keywords,
 )
+from .cultural_signals import CulturalSignals, extract_cultural_signals
 from .trajectory import TrajectoryStats, extract_trajectory
 
 
@@ -21,6 +22,7 @@ class PsychologicalProfile:
     stylometry: StylometryStats
     value_keywords: Dict[str, int]
     trajectory: TrajectoryStats
+    cultural_signals: CulturalSignals
 
     def to_dict(self) -> Dict[str, object]:
         return {
@@ -29,6 +31,7 @@ class PsychologicalProfile:
             "stylometry": asdict(self.stylometry),
             "value_keywords": self.value_keywords,
             "trajectory": asdict(self.trajectory),
+            "cultural_signals": asdict(self.cultural_signals),
         }
 
 
@@ -37,6 +40,7 @@ def build_profile(user_id: str, records: list[InteractionRecord]) -> Psychologic
     stylometry = extract_stylometry(records)
     value_keywords = extract_value_keywords(records)
     trajectory = extract_trajectory(records)
+    cultural_signals = extract_cultural_signals(records)
 
     return PsychologicalProfile(
         user_id=user_id,
@@ -44,4 +48,5 @@ def build_profile(user_id: str, records: list[InteractionRecord]) -> Psychologic
         stylometry=stylometry,
         value_keywords=value_keywords,
         trajectory=trajectory,
+        cultural_signals=cultural_signals,
     )

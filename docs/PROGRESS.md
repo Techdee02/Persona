@@ -20,6 +20,7 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 ## Phase 3 Checklist
 
 - [x] Task 1: Living trajectory features
+- [x] Task 2: Nigerian English detection signals
 
 ## Task Logs
 
@@ -113,4 +114,13 @@ Status: Done
 Notes:
 - Added trajectory stats comparing early vs recent behavior
 - Integrated trajectory into the psychological profile
+- Tests: python -m pytest backend/tests
+
+### Phase 3 Task 2: Nigerian English detection signals
+
+Status: Done
+
+Notes:
+- Added cultural signal extraction with pidgin term detection
+- Added Nigerian English index and code-switching flag to profile
 - Tests: python -m pytest backend/tests

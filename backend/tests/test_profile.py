@@ -19,3 +19,4 @@ def test_build_profile():
     assert profile.rating_stats.count == 1
     assert profile.stylometry.avg_word_count > 0
     assert profile.value_keywords["food"] == 1
+    assert profile.cultural_signals.nigerian_english_index >= 0.0
