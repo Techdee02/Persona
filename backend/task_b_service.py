@@ -7,13 +7,19 @@ import numpy as np
 from .deliberative_scoring import deliberative_score
 from .preference_axes import extract_preference_axes
 from .retrieval import RetrievalItem, multi_angle_retrieve
+from .vector_store_service import VectorStoreService
 from .services.profile_service import ProfileService
 from .data.schema import InteractionRecord
 
 
 class TaskBService:
-    def __init__(self, profile_service: Optional[ProfileService] = None) -> None:
+    def __init__(
+        self,
+        profile_service: Optional[ProfileService] = None,
+        vector_store_service: Optional[VectorStoreService] = None,
+    ) -> None:
         self._profile_service = profile_service or ProfileService()
+        self._vector_store_service = vector_store_service
 
     def recommend(
         self,
@@ -24,9 +30,22 @@ class TaskBService:
         top_k: int = 10,
         weights: Optional[List[float]] = None,
         penalties: Optional[Dict[str, float]] = None,
+        query_text: Optional[str] = None,
     ) -> Dict[str, object]:
         profile = self._profile_service.build_profile_cached(user_id, records)
         axes = extract_preference_axes(profile)
+
+        if self._vector_store_service and query_text:
+            retrieved_items = self._vector_store_service.query(query_text, top_k=top_k)
+            candidates = [
+                RetrievalItem(
+                    item_id=item["item_id"],
+                    vector=np.array([], dtype=float),
+                    metadata=item.get("metadata", {}),
+                )
+                for item in retrieved_items
+            ]
+            query_vectors = [np.array([], dtype=float)]
 
         retrieved = multi_angle_retrieve(
             candidates,

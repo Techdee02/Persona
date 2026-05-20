@@ -9,6 +9,7 @@ from .llm_factory import create_openai_client
 from .task_a_service import TaskAService
 from .task_b_agent_service import TaskBAgentService
 from .task_b_service import TaskBService
+from .vector_store_service import VectorStoreService
 from .retrieval import RetrievalItem
 import numpy as np
 
@@ -19,7 +20,8 @@ app = FastAPI(title="Persona API", version="0.1.0")
 profile_service = ProfileService()
 llm_client = create_openai_client()
 task_a_service = TaskAService(profile_service=profile_service, llm_client=llm_client)
-task_b_service = TaskBService(profile_service=profile_service)
+vector_store_service = VectorStoreService.create()
+task_b_service = TaskBService(profile_service=profile_service, vector_store_service=vector_store_service)
 task_b_agent_service = TaskBAgentService(profile_service=profile_service, llm_client=llm_client)
 
 
@@ -123,13 +125,14 @@ def task_b_recommend(payload: dict) -> dict:
     top_k = int(payload.get("top_k", 10))
     weights = payload.get("weights", None)
     penalties = payload.get("penalties", None)
+    query_text = payload.get("query_text", None)
 
     if not user_id:
         raise HTTPException(status_code=400, detail="user_id is required")
-    if not query_vectors:
-        raise HTTPException(status_code=400, detail="query_vectors are required")
-    if not candidates:
-        raise HTTPException(status_code=400, detail="candidates are required")
+    if not query_text and not query_vectors:
+        raise HTTPException(status_code=400, detail="query_text or query_vectors are required")
+    if not candidates and not query_text:
+        raise HTTPException(status_code=400, detail="candidates are required when query_text is not provided")
 
     parsed_records = []
     for record in records:
@@ -162,6 +165,7 @@ def task_b_recommend(payload: dict) -> dict:
         top_k=top_k,
         weights=weights,
         penalties=penalties,
+        query_text=query_text,
     )
 
 

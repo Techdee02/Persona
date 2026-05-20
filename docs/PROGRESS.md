@@ -31,6 +31,7 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 - [x] Task 10: Task A LLM review scaffold
 - [x] Task 11: Embeddings pipeline and vector store
 - [x] Task 12: Embedding ingestion script
+- [x] Task 13: Task B vector store integration
 
 ## Task Logs
 
@@ -223,4 +224,13 @@ Status: Done
 Notes:
 - Added JSONL ingestion to build vector store from dataset fields
 - Added ingestion smoke test
+- Tests: python -m pytest backend/tests
+
+### Phase 3 Task 13: Task B vector store integration
+
+Status: Done
+
+Notes:
+- Added vector store service for embedding-based queries
+- Task B endpoint accepts query_text for vector store retrieval
 - Tests: python -m pytest backend/tests
