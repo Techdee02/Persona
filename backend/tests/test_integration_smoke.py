@@ -32,5 +32,4 @@ def test_task_a_stub():
 
 def test_task_b_stub():
     response = client.post("/task-b/recommend", json={})
-    assert response.status_code == 200
-    assert response.json()["status"] == "stub"
+    assert response.status_code == 400

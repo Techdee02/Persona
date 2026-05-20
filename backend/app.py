@@ -5,12 +5,16 @@ import uuid
 from .data.schema import InteractionRecord
 from .logging_utils import configure_logging
 from .services.profile_service import ProfileService
+from .task_b_service import TaskBService
+from .retrieval import RetrievalItem
+import numpy as np
 
 configure_logging()
 logger = logging.getLogger("persona.api")
 
 app = FastAPI(title="Persona API", version="0.1.0")
 profile_service = ProfileService()
+task_b_service = TaskBService(profile_service=profile_service)
 
 
 @app.middleware("http")
@@ -63,8 +67,51 @@ def task_a_stub() -> dict:
 
 
 @app.post("/task-b/recommend")
-def task_b_stub() -> dict:
-    return {
-        "status": "stub",
-        "message": "Task B pipeline will be added in Phase 2.",
-    }
+def task_b_recommend(payload: dict) -> dict:
+    user_id = str(payload.get("user_id", "")).strip()
+    records = payload.get("records", [])
+    query_vectors = payload.get("query_vectors", [])
+    candidates = payload.get("candidates", [])
+    top_k = int(payload.get("top_k", 10))
+    weights = payload.get("weights", None)
+    penalties = payload.get("penalties", None)
+
+    if not user_id:
+        raise HTTPException(status_code=400, detail="user_id is required")
+    if not query_vectors:
+        raise HTTPException(status_code=400, detail="query_vectors are required")
+    if not candidates:
+        raise HTTPException(status_code=400, detail="candidates are required")
+
+    parsed_records = []
+    for record in records:
+        parsed_records.append(
+            InteractionRecord(
+                user_id=user_id,
+                item_id=str(record.get("item_id", "")).strip(),
+                rating=float(record.get("rating", 0.0)),
+                review_text=str(record.get("review_text", "")).strip(),
+                timestamp=str(record.get("timestamp", "")).strip() or None,
+                source=str(record.get("source", "")).strip() or "unknown",
+            )
+        )
+
+    query_vecs = [np.array(vec, dtype=float) for vec in query_vectors]
+    candidate_items = [
+        RetrievalItem(
+            item_id=str(item.get("item_id", "")).strip(),
+            vector=np.array(item.get("vector", []), dtype=float),
+            metadata=item.get("metadata", {}),
+        )
+        for item in candidates
+    ]
+
+    return task_b_service.recommend(
+        user_id=user_id,
+        records=parsed_records,
+        query_vectors=query_vecs,
+        candidates=candidate_items,
+        top_k=top_k,
+        weights=weights,
+        penalties=penalties,
+    )
