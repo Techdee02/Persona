@@ -23,6 +23,7 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 - [x] Task 2: Nigerian English detection signals
 - [x] Task 3: Preference axis extraction
 - [x] Task 4: Deliberative scoring utility
+- [x] Task 5: Agent/tool-calling scaffold
 
 ## Task Logs
 
@@ -143,4 +144,13 @@ Status: Done
 Notes:
 - Added deliberative scoring helper with axis weighting and penalties
 - Generates explanation snippets for ranking decisions
+- Tests: python -m pytest backend/tests
+
+### Phase 3 Task 5: Agent/tool-calling scaffold
+
+Status: Done
+
+Notes:
+- Added tool registry and orchestration skeleton
+- Supports ordered tool calls and result aggregation
 - Tests: python -m pytest backend/tests
