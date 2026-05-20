@@ -14,6 +14,7 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 
 - [x] Task 1: Deterministic mode + profile caching
 - [x] Task 2: Structured logging + tracing
+- [x] Task 3: Multi-angle retrieval (vector-based)
 
 ## Task Logs
 
@@ -80,4 +81,13 @@ Status: Done
 Notes:
 - Added trace id middleware with response header
 - Added logging config with trace id filter
+- Tests: python -m pytest backend/tests
+
+### Phase 2 Task 3: Multi-angle retrieval (vector-based)
+
+Status: Done
+
+Notes:
+- Added vector-based multi-angle retrieval with cosine similarity
+- Supports weighted query vectors
 - Tests: python -m pytest backend/tests
