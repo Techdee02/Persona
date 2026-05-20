@@ -27,6 +27,8 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 - [x] Task 6: Task B endpoint integration (non-LLM)
 - [x] Task 7: Agent tool definitions
 - [x] Task 8: Task A endpoint integration (non-LLM)
+- [x] Task 9: OpenAI LLM scaffold and agent endpoint
+- [x] Task 10: Task A LLM review scaffold
 
 ## Task Logs
 
@@ -183,4 +185,22 @@ Status: Done
 Notes:
 - Wired Task A endpoint to rating calibration and profile stats
 - Added endpoint test with target item payload
+- Tests: python -m pytest backend/tests
+
+### Phase 3 Task 9: OpenAI LLM scaffold and agent endpoint
+
+Status: Done
+
+Notes:
+- Added OpenAI client scaffolding and env config
+- Added Task B agent endpoint with optional LLM planning
+- Tests: python -m pytest backend/tests
+
+### Phase 3 Task 10: Task A LLM review scaffold
+
+Status: Done
+
+Notes:
+- Added optional LLM review generation for Task A
+- Endpoint supports use_llm flag with OpenAI client
 - Tests: python -m pytest backend/tests

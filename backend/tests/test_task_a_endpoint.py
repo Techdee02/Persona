@@ -20,6 +20,7 @@ def test_task_a_simulate_minimal_payload():
                 }
             ],
             "target_item": {"item_id": "i2", "name": "Target"},
+            "use_llm": False,
         },
     )
 
