@@ -50,3 +50,19 @@ def build_profile(user_id: str, records: list[InteractionRecord]) -> Psychologic
         trajectory=trajectory,
         cultural_signals=cultural_signals,
     )
+
+
+def profile_from_dict(payload: Dict[str, object]) -> PsychologicalProfile:
+    rating_stats = payload.get("rating_stats", {})
+    stylometry = payload.get("stylometry", {})
+    trajectory = payload.get("trajectory", {})
+    cultural = payload.get("cultural_signals", {})
+
+    return PsychologicalProfile(
+        user_id=str(payload.get("user_id", "")),
+        rating_stats=RatingStats(**rating_stats),
+        stylometry=StylometryStats(**stylometry),
+        value_keywords=payload.get("value_keywords", {}),
+        trajectory=TrajectoryStats(**trajectory),
+        cultural_signals=CulturalSignals(**cultural),
+    )

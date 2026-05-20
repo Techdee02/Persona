@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, List
 
-from .profile import PsychologicalProfile
+from .profile import PsychologicalProfile, profile_from_dict
 
 
 @dataclass(frozen=True)
@@ -13,7 +13,9 @@ class PreferenceAxis:
     weight: float
 
 
-def extract_preference_axes(profile: PsychologicalProfile) -> List[PreferenceAxis]:
+def extract_preference_axes(profile: PsychologicalProfile | Dict[str, object]) -> List[PreferenceAxis]:
+    if isinstance(profile, dict):
+        profile = profile_from_dict(profile)
     axes: List[PreferenceAxis] = []
 
     value_keywords = profile.value_keywords
