@@ -3,3 +3,5 @@ fastapi
 uvicorn
 httpx
 numpy
+openai
+sentence-transformers
