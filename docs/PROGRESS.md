@@ -33,6 +33,7 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 - [x] Task 12: Embedding ingestion script
 - [x] Task 13: Task B vector store integration
 - [x] Task 14: Dataset-specific ingestion helpers
+- [x] Task 15: Vector store persistence
 
 ## Task Logs
 
@@ -243,4 +244,13 @@ Status: Done
 Notes:
 - Added dataset-specific ingestion helpers for Yelp/Amazon/Goodreads
 - Added ingestion smoke test
+- Tests: python -m pytest backend/tests
+
+### Phase 3 Task 15: Vector store persistence
+
+Status: Done
+
+Notes:
+- Added save/load helpers for vector store JSON snapshots
+- Added persistence smoke test
 - Tests: python -m pytest backend/tests
