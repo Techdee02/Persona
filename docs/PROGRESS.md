@@ -25,6 +25,7 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 - [x] Task 4: Deliberative scoring utility
 - [x] Task 5: Agent/tool-calling scaffold
 - [x] Task 6: Task B endpoint integration (non-LLM)
+- [x] Task 7: Agent tool definitions
 
 ## Task Logs
 
@@ -163,4 +164,13 @@ Status: Done
 Notes:
 - Wired Task B endpoint to use axes, retrieval, and deliberative scoring
 - Added endpoint test with vector payload
+- Tests: python -m pytest backend/tests
+
+### Phase 3 Task 7: Agent tool definitions
+
+Status: Done
+
+Notes:
+- Added tool registry definitions for profile, axes, retrieval, scoring
+- Added basic registry test
 - Tests: python -m pytest backend/tests
