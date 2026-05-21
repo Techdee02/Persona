@@ -6,3 +6,5 @@ numpy
 openai
 sentence-transformers
 pydantic
+# Optional: install for BERTScore computation in task_a_eval --bertscore
+# bert-score
