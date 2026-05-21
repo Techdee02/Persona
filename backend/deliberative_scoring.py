@@ -24,8 +24,14 @@ def deliberative_score(
     scored: List[ScoredRecommendation] = []
 
     for candidate in candidates:
-        axis_score = sum(axis.weight for axis in axes)
-        penalty_score = sum(penalties.values())
+        # Boost only when the axis name appears as a key in the item's metadata.
+        axis_score = sum(
+            axis.weight for axis in axes if axis.name in candidate.metadata
+        )
+        # Penalise only when the penalty key appears in the item's metadata.
+        penalty_score = sum(
+            value for key, value in penalties.items() if key in candidate.metadata
+        )
         final_score = candidate.score + axis_score - penalty_score
 
         explanation = _build_explanation(candidate, axes, penalties)

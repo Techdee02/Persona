@@ -22,7 +22,7 @@ def temporal_split(
             train.extend(user_records)
             continue
 
-        ordered = sorted(user_records, key=_timestamp_key)
+        ordered = sorted(user_records, key=timestamp_key)
         split_index = max(1, int(len(ordered) * train_ratio))
         train.extend(ordered[:split_index])
         test.extend(ordered[split_index:])
@@ -30,7 +30,7 @@ def temporal_split(
     return train, test
 
 
-def _timestamp_key(record: InteractionRecord) -> float:
+def timestamp_key(record: InteractionRecord) -> float:
     if record.timestamp is None:
         return 0.0
     value = record.timestamp

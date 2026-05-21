@@ -14,6 +14,9 @@ class AppConfig:
     deterministic_mode: bool
     profile_cache_ttl_seconds: int
     profile_cache_max_size: int
+    enable_llm: bool
+    openai_api_key: str
+    openai_model: str
 
 
 def _get_env(name: str) -> str:
@@ -36,6 +39,9 @@ def app_config_from_env() -> AppConfig:
         deterministic_mode=_get_bool_env("DETERMINISTIC_MODE", default=False),
         profile_cache_ttl_seconds=_get_int_env("PROFILE_CACHE_TTL_SECONDS", default=3600),
         profile_cache_max_size=_get_int_env("PROFILE_CACHE_MAX_SIZE", default=1000),
+        enable_llm=_get_bool_env("ENABLE_LLM", default=False),
+        openai_api_key=os.getenv("OPENAI_API_KEY", "").strip(),
+        openai_model=os.getenv("OPENAI_MODEL", "gpt-4o"),
     )
 
 

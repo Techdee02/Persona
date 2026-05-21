@@ -6,7 +6,7 @@ import numpy as np
 
 from .deliberative_scoring import deliberative_score
 from .preference_axes import extract_preference_axes
-from .retrieval import RetrievalItem, multi_angle_retrieve
+from .retrieval import RetrievalItem, RetrievalResult, multi_angle_retrieve
 from .vector_store_service import VectorStoreService
 from .services.profile_service import ProfileService
 from .data.schema import InteractionRecord
@@ -36,23 +36,24 @@ class TaskBService:
         axes = extract_preference_axes(profile)
 
         if self._vector_store_service and query_text:
+            # Vector store already returns items ranked by embedding similarity;
+            # skip the vector-based multi_angle_retrieve and use results directly.
             retrieved_items = self._vector_store_service.query(query_text, top_k=top_k)
-            candidates = [
-                RetrievalItem(
+            retrieved = [
+                RetrievalResult(
                     item_id=item["item_id"],
-                    vector=np.array([], dtype=float),
+                    score=item["score"],
                     metadata=item.get("metadata", {}),
                 )
                 for item in retrieved_items
             ]
-            query_vectors = [np.array([], dtype=float)]
-
-        retrieved = multi_angle_retrieve(
-            candidates,
-            query_vectors=query_vectors,
-            top_k=top_k,
-            weights=weights,
-        )
+        else:
+            retrieved = multi_angle_retrieve(
+                candidates,
+                query_vectors=query_vectors,
+                top_k=top_k,
+                weights=weights,
+            )
 
         scored = deliberative_score(retrieved, axes, penalties=penalties)
 

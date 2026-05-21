@@ -93,7 +93,16 @@ class TaskBAgentService:
         if not tool_calls:
             return _deterministic_plan(user_id, records, query_vectors, candidates, top_k, weights, penalties)
 
-        return _deterministic_plan(user_id, records, query_vectors, candidates, top_k, weights, penalties)
+        # Use the LLM's tool ordering but supply system-defined arguments for each step.
+        det = {call.name: call for call in _deterministic_plan(
+            user_id, records, query_vectors, candidates, top_k, weights, penalties
+        )}
+        plan = [
+            det[tc.get("function", {}).get("name", "")]
+            for tc in tool_calls
+            if tc.get("function", {}).get("name", "") in det
+        ]
+        return plan if plan else list(det.values())
 
 
 def _deterministic_plan(
@@ -124,7 +133,7 @@ def _deterministic_plan(
                     RetrievalResult(item_id=item["item_id"], score=0.0, metadata=item.get("metadata", {}))
                     for item in candidates
                 ],
-                "axes": [],
+                "axes": {"$ref": "extract_axes"},
                 "penalties": penalties or {},
             },
         ),

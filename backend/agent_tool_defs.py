@@ -7,7 +7,7 @@ import numpy as np
 from .agent_tools import ToolRegistry
 from .data.schema import InteractionRecord
 from .deliberative_scoring import deliberative_score
-from .preference_axes import extract_preference_axes
+from .preference_axes import PreferenceAxis, extract_preference_axes
 from .retrieval import RetrievalItem, multi_angle_retrieve
 from .services.profile_service import ProfileService
 
@@ -54,7 +54,12 @@ def _retrieve_candidates(args: Dict[str, object]) -> Dict[str, object]:
 
 
 def _score_candidates(args: Dict[str, object]) -> Dict[str, object]:
-    axes = args.get("axes", [])
+    # axes may arrive as a plain list or wrapped in the extract_axes output dict.
+    axes_raw = args.get("axes", [])
+    if isinstance(axes_raw, dict):
+        axes_raw = axes_raw.get("axes", [])
+    axes = [PreferenceAxis(**ax) if isinstance(ax, dict) else ax for ax in axes_raw]
+
     penalties = args.get("penalties", None)
     candidates = args.get("candidates", [])
 
