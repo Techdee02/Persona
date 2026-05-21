@@ -1,7 +1,8 @@
 # Persona — Backend & AI/ML Architecture
 
 Owner: Backend AI/ML  
-Last updated: 2026-05-21
+Last updated: 2026-05-21  
+Test suite: 114 tests, all passing
 
 ---
 
@@ -23,13 +24,16 @@ Last updated: 2026-05-21
 5. [Cold-Start System](#5-cold-start-system)
 6. [Task A Pipeline — Review Simulation](#6-task-a-pipeline--review-simulation)
    - 6.1 Rating calibration
-   - 6.2 Template-based review generation
-   - 6.3 LLM review path
+   - 6.2 Richer reasoning trace
+   - 6.3 Template-based review generation
+   - 6.4 Structured LLM prompts
+   - 6.5 LLM review path
 7. [Task B Pipeline — Agentic Recommendation](#7-task-b-pipeline--agentic-recommendation)
    - 7.1 Preference axis extraction
    - 7.2 Multi-angle retrieval
    - 7.3 Deliberative scoring
    - 7.4 Non-LLM path (TaskBService)
+   - 7.5 Session state (multi-turn)
 8. [Agent System](#8-agent-system)
    - 8.1 Tool registry
    - 8.2 Agent orchestrator and $ref resolution
@@ -42,11 +46,13 @@ Last updated: 2026-05-21
    - 9.4 JSON persistence
    - 9.5 Dataset ingestion pipeline
    - 9.6 CLI
+   - 9.7 Cross-domain retrieval (MultiVectorStoreService)
 10. [Evaluation System](#10-evaluation-system)
     - 10.1 Metrics
     - 10.2 Task A evaluation runner
     - 10.3 Task B evaluation runner
-    - 10.4 Baselines
+    - 10.4 Ablation study runner
+    - 10.5 Baselines
 11. [API Layer](#11-api-layer)
     - 11.1 Endpoint contracts
     - 11.2 Trace-ID middleware
@@ -87,43 +93,46 @@ All outputs include a reasoning trace so judges and users can audit decisions.
 ## 2. High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  Client (frontend / evaluation scripts / curl)                      │
-└───────────────────────────────┬─────────────────────────────────────┘
-                                │ HTTP
-                                ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  FastAPI  (backend/app.py)                                          │
-│  ├── Trace-ID middleware (X-Trace-Id header)                        │
-│  ├── GET  /health                                                   │
-│  ├── GET  /cold-start/questions                                     │
-│  ├── POST /cold-start/answer   ──► ColdStartEngine                 │
-│  ├── POST /profile/build       ──► ProfileService                  │
-│  ├── POST /task-a/simulate     ──► TaskAService                    │
-│  ├── POST /task-b/recommend    ──► TaskBService                    │
-│  └── POST /task-b/agent        ──► TaskBAgentService               │
-└────────────┬───────────────────────────────────────────────────────┘
-             │
-   ┌─────────┴───────────────────────────────────────┐
-   │                                                 │
-   ▼                                                 ▼
-ProfileEngine                               VectorStoreService
-  signal_extraction.py                        embeddings.py
-  cultural_signals.py                         vector_store.py
-  trajectory.py                               vector_store_persist.py
-  profile.py                                  (loaded from VECTOR_STORE_PATH)
-  services/profile_service.py
-  (TTL+LRU cache)
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Client (frontend / evaluation scripts / curl)                          │
+└─────────────────────────────┬───────────────────────────────────────────┘
+                              │ HTTP
+                              ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│  FastAPI  (backend/app.py)                                              │
+│  ├── Trace-ID middleware (X-Trace-Id header)                            │
+│  ├── GET  /health                                                       │
+│  ├── GET  /cold-start/questions                                         │
+│  ├── POST /cold-start/answer    ──► ColdStartEngine                    │
+│  ├── POST /profile/build        ──► ProfileService                     │
+│  ├── POST /profile/update       ──► ProfileService (append + rebuild)  │
+│  ├── POST /task-a/simulate      ──► TaskAService                       │
+│  ├── POST /task-b/recommend     ──► TaskBService + SessionStore        │
+│  └── POST /task-b/agent         ──► TaskBAgentService                  │
+└──────────────┬──────────────────────────────────────────────────────────┘
+               │
+   ┌───────────┴──────────────────────────────────────────┐
+   │                                                      │
+   ▼                                                      ▼
+ProfileEngine                                  VectorStoreService / MultiVectorStoreService
+  signal_extraction.py                           embeddings.py
+  cultural_signals.py                            vector_store.py
+  trajectory.py                                  vector_store_persist.py
+  profile.py                                     multi_vector_store.py (cross-domain)
+  services/profile_service.py                    (loaded from VECTOR_STORE_PATH[_*])
+  (SHA-256 keyed TTL+LRU cache)
    │
-   ├──────────────────────────┐
-   ▼                          ▼
-TaskAService              TaskBService / TaskBAgentService
-  rating_calibration.py     preference_axes.py
-  review_generator.py       retrieval.py
-  llm_client.py (opt)       deliberative_scoring.py
-                            agent_orchestrator.py (agent path)
-                            agent_tool_defs.py
-                            llm_client.py (opt)
+   ├──────────────────────────────┐
+   ▼                              ▼
+TaskAService                  TaskBService / TaskBAgentService
+  rating_calibration.py         preference_axes.py
+  _build_reasoning()            retrieval.py
+  review_generator.py           deliberative_scoring.py
+  llm_prompts.py (opt)          session.py (multi-turn state)
+  llm_client.py (opt)           agent_orchestrator.py (agent path)
+                                agent_tool_defs.py
+                                llm_prompts.py (opt)
+                                llm_client.py (opt)
 ```
 
 ---
@@ -422,16 +431,19 @@ The bootstrapped profile is compatible with all downstream consumers:
 
 ```
 records
-  └─► build_profile_cached()   →  PsychologicalProfile
-                                         │
+  └─► build_profile_cached()     →  PsychologicalProfile
+                                           │
 population_records (or records as fallback)
-  └─► build_rating_calibration() → RatingCalibration
-                                         │
+  └─► build_rating_calibration() →  RatingCalibration
+                                           │
 profile.rating_stats.mean
-  └─► calibration.calibrate()  →  predicted_rating (float, clamped 1–5)
-                                         │
-                                         ├── use_llm=False → generate_review(profile, target_item)
-                                         └── use_llm=True  → _generate_review_with_llm(...)
+  └─► calibration.calibrate()   →  predicted_rating (float, clamped 1–5)
+                                           │
+                                           ├─► _build_reasoning()  →  reasoning string
+                                           │
+                                           ├── use_llm=False → generate_review(profile, target_item)
+                                           └── use_llm=True  → _generate_review_with_llm(...)
+                                                                    uses build_task_a_prompt()
 ```
 
 ### 6.1 Rating Calibration
@@ -461,7 +473,46 @@ Z-score rescaling maps the user's personal scale to the population scale:
 When `population_records` is not provided the endpoint falls back to using the user's
 own records as the population, making calibration a no-op in that case.
 
-### 6.2 Template-Based Review Generation
+### 6.2 Richer Reasoning Trace
+
+**Function:** `_build_reasoning(profile, calibration, calibrated_rating) → str`
+
+The reasoning trace is a structured natural-language string that records the key signals
+used to arrive at the predicted rating and review. It is always included in the Task A
+response so judges and users can audit every decision.
+
+**Components (in order):**
+
+1. **Rating calibration narrative** — states the user's mean rating, std dev, history size,
+   and the direction of calibration against the population mean:
+   ```
+   User mean rating is 4.20 (σ=0.50, n=12); calibrated downward to 3.80 against population mean 3.50.
+   ```
+
+2. **Top preference axes** — lists the top 2 axes by weight (e.g. food, service) with their
+   normalised weights:
+   ```
+   Top preference axes: food (w=0.62), service (w=0.25).
+   ```
+
+3. **Trajectory drift** — included only when |delta_rating| ≥ 0.3; states direction and magnitude:
+   ```
+   Rating trajectory has improved by 0.40 (early avg 3.60 → recent 4.00).
+   ```
+
+4. **Stylometry fingerprint** — approximate word count and vocab richness:
+   ```
+   Review style: ~80 words, vocab richness 0.62.
+   ```
+
+5. **Cultural register** — included only when code-switching is detected:
+   ```
+   Nigerian English detected (index=0.04, pidgin hits=3); cultural register applied.
+   ```
+
+When `use_llm=True` an additional clause is appended: `"Review generated via LLM using structured prompt."`
+
+### 6.3 Template-Based Review Generation
 
 **File:** `backend/review_generator.py`
 
@@ -491,22 +542,48 @@ Produces a review string without any LLM call, driven entirely by profile signal
 review generator uses `random.Random(seed)` internally and does not touch the global
 random state.
 
-### 6.3 LLM Review Path
+### 6.4 Structured LLM Prompts
+
+**File:** `backend/llm_prompts.py`
+
+```python
+build_task_a_prompt(profile: Dict, target_item: Dict) → List[Dict[str, str]]
+build_task_b_prompt(profile, axes, candidates, session_context=None) → List[Dict[str, str]]
+```
+
+Both functions return a list of OpenAI-compatible chat message dicts. Cultural calibration
+is applied automatically.
+
+**Task A system prompt** adapts based on cultural signals:
+- When `code_switching_detected` or `nigerian_english_index > 0.2`: instructs the model to
+  incorporate Nigerian English and Pidgin at the user's typical frequency ("do not exaggerate
+  or stereotype").
+- Always instructs: write only the review, match typical review length, focus on the user's
+  top value dimensions.
+
+**Task A user message** includes a structured USER PROFILE SUMMARY block with all five signal
+dimensions (rating mean/σ/n, stylometry, top value priorities, trajectory drift note, cultural
+index) followed by a TARGET ITEM block.
+
+**Task B system prompt** instructs the model to return a JSON object `{ranked_items: [{item_id, explanation}]}`
+and adds a cultural context note when code-switching is detected.
+
+**Task B user message** includes profile summary, formatted preference axes (top 5), optional
+session context (turn count, excluded IDs, constraints), and the full candidate list with
+retrieval scores.
+
+### 6.5 LLM Review Path
 
 When `use_llm=True` and an `OpenAIClient` is configured:
 
 ```python
-messages = [
-    {"role": "system", "content": "Write a short review in the user's voice based on the profile."},
-    {"role": "user",   "content": f"Profile: {profile_dict}\nItem: {target_item}"},
-]
+messages = build_task_a_prompt(profile.to_dict(), target_item)
 response = llm_client.chat_completion(messages, temperature=0.2)
 ```
 
-The temperature of 0.2 keeps output near-deterministic for scoring consistency.
-The system prompt constrains the model to mimic the user's voice; the profile dict
-passed includes all five signal dimensions so the model can calibrate length, tone,
-and cultural register.
+`temperature=0.2` keeps output near-deterministic for scoring consistency.
+The structured prompt gives the model all five signal dimensions so it can calibrate
+length, tone, vocabulary richness, and cultural register independently.
 
 ### Output
 
@@ -515,8 +592,8 @@ and cultural register.
   "user_id": "u1",
   "target_item": { ... },
   "predicted_rating": 3.8,
-  "reasoning": "Rating derived from user mean with calibration.",
-  "review_text": "Really enjoyed this. The food was the highlight. ..."
+  "reasoning": "User mean rating is 4.20 (σ=0.50, n=12); calibrated downward to 3.80 against population mean 3.50. Top preference axes: food (w=0.62), service (w=0.25). Review style: ~80 words, vocab richness 0.62.",
+  "review_text": "Really enjoyed this. The food was the highlight. Kilimanjaro Restaurant delivered what I was looking for. Abeg, try am yourself."
 }
 ```
 
@@ -666,6 +743,48 @@ Results are sorted by `final_score` descending.
   ]
 }
 ```
+
+### 7.5 Session State (Multi-Turn)
+
+**File:** `backend/session.py`
+
+Enables multi-turn recommendation conversations where each turn excludes already-recommended
+items and accumulates user constraints.
+
+```python
+@dataclass
+class SessionState:
+    session_id: str
+    user_id:    str
+    excluded_ids:  Set[str]          # item IDs already recommended in this session
+    constraints:   Dict[str, object] # e.g. {"cuisine": "Nigerian", "budget": "cheap"}
+    turn:          int               # incremented on each recommendation call
+    last_accessed: float             # for TTL eviction
+```
+
+**`SessionStore`** manages sessions in memory with TTL + LRU eviction (default 3600s TTL,
+10 000 session cap). Key operations:
+
+```python
+store.create(user_id, session_id=None) → SessionState     # new or fixed-id session
+store.get(session_id)                  → Optional[SessionState]
+store.get_or_create(user_id, session_id) → SessionState   # resumable sessions
+store.delete(session_id)               → bool
+```
+
+**Integration in `/task-b/recommend`:**
+
+If `session_id` is present in the request:
+1. `get_or_create(user_id, session_id)` loads or creates the session.
+2. Any `constraints` dict from the request is merged into `session.constraints`.
+3. `top_k` is inflated by `len(session.excluded_ids)` to account for filtering.
+4. After recommendation, the result is filtered to remove `excluded_ids`, trimmed to
+   the requested `top_k`, and the session's `excluded_ids` is updated.
+5. The `session_id` is echoed back in the response.
+
+**`context_summary()`** returns a sentence describing the session's current state
+(turn number, excluded items, active constraints) for injection into the LLM prompt
+via `build_task_b_prompt(..., session_context=session.context_summary())`.
 
 ---
 
@@ -915,6 +1034,55 @@ python -m backend.cli \
 Calls the appropriate `ingest_*` helper then `save_vector_store()`. Suitable for a
 one-time pre-processing step or a cron job when the dataset is refreshed.
 
+### 9.7 Cross-Domain Retrieval (MultiVectorStoreService)
+
+**File:** `backend/multi_vector_store.py`
+
+When multiple per-domain vector stores are configured, `MultiVectorStoreService` fans the
+query out across all stores, normalises scores within each domain, and merges results.
+
+```python
+class MultiVectorStoreService:
+    def __init__(self, stores: Dict[str, VectorStoreService])
+    def query(query_text, top_k=10, domain_weights=None) → List[Dict]
+    def add_store(domain, store) → None
+    def remove_store(domain) → bool
+```
+
+**Algorithm:**
+
+```
+For each domain store:
+  1. Call store.query(query_text, top_k=top_k) → raw results
+  2. Min-max normalise scores within the domain:
+       norm_score = (score - min_score) / (max_score - min_score)
+  3. Apply optional domain_weight multiplier
+  4. Tag each result with its domain name
+
+Merge all results:
+  5. Deduplicate by item_id, keeping the highest normalised score
+  6. Sort by score descending, return top_k
+```
+
+**Why per-domain normalisation?** Embedding score distributions differ across datasets
+(Yelp restaurant descriptions vs Amazon product reviews have different centring). Raw cosine
+scores are not comparable across domains; normalising within each domain before merging
+prevents any single dataset from dominating due to distributional differences.
+
+**Configuration:** Three env vars activate the multi-domain path:
+
+```
+VECTOR_STORE_PATH_YELP=/data/yelp.json
+VECTOR_STORE_PATH_AMAZON=/data/amazon.json
+VECTOR_STORE_PATH_GOODREADS=/data/goodreads.json
+```
+
+If none are set, the single `VECTOR_STORE_PATH` path is used instead. The `MultiVectorStoreService`
+instance is only created when at least one per-domain path is configured.
+
+Faulty stores (connection errors, corrupt JSON) are skipped with an `ERROR` log; the query
+returns results from the remaining healthy stores.
+
 ---
 
 ## 10. Evaluation System
@@ -978,8 +1146,9 @@ Per-user binary metric; caller averages over the user set.
 
 ```bash
 python -m backend.evaluation.task_a_eval \
-  --records data/records.jsonl \
-  --split   0.8
+  --records   data/records.jsonl \
+  --split     0.8 \
+  --bertscore          # optional; requires bert-score package
 ```
 
 Algorithm:
@@ -991,8 +1160,37 @@ Algorithm:
    - Generate a template review.
 3. Compute `persona_rmse` and `baseline_rmse` (global mean).
 4. Compute `rouge_l` over (generated, reference) pairs where reference is non-empty.
+5. If `--bertscore`: compute BERTScore F1 via `bert_score` (optional import, graceful
+   warning if not installed).
 
-Output JSON includes `rmse_improvement = baseline_rmse - persona_rmse`.
+**Per-user breakdown** (always computed):
+
+| Breakdown | Labels |
+|---|---|
+| by history length | `sparse` (1–5), `medium` (6–20), `dense` (>20) |
+| by cultural signal | `with_nigerian_english`, `without_nigerian_english` |
+
+Output:
+```json
+{
+  "test_size": 1240,
+  "persona_rmse": 0.71,
+  "baseline_rmse": 0.89,
+  "rmse_improvement": 0.18,
+  "rouge_l": 0.14,
+  "breakdown": {
+    "by_history_length": {
+      "sparse": {"rmse": 0.81, "users": 120},
+      "medium": {"rmse": 0.68, "users": 890},
+      "dense":  {"rmse": 0.61, "users": 230}
+    },
+    "by_cultural_signal": {
+      "with_nigerian_english":    {"rmse": 0.65, "users": 310},
+      "without_nigerian_english": {"rmse": 0.74, "users": 930}
+    }
+  }
+}
+```
 
 ### 10.3 Task B Evaluation Runner
 
@@ -1005,10 +1203,13 @@ python -m backend.evaluation.task_b_eval \
   --k       10
 ```
 
+Supports an optional `ablate_layer` parameter (used by the ablation runner) that zeroes
+out one profile layer before scoring.
+
 Algorithm:
 1. Temporal split (default 80/20).
 2. For each user who has train records:
-   - Build profile from train records.
+   - Build profile from train records (optionally ablated).
    - Extract preference axes.
    - Embed the user's most recent review text as the query vector.
    - Query the vector store for top-k candidates.
@@ -1017,9 +1218,58 @@ Algorithm:
    - Record NDCG@k and Hit Rate@k.
 3. Also compute baseline NDCG@k and Hit Rate@k using the popularity baseline.
 
-Output JSON includes `ndcg_improvement` and per-metric persona vs baseline values.
+Output includes the same per-user breakdown as Task A eval (by history length and
+cultural signal), plus `ndcg_improvement`.
 
-### 10.4 Baselines
+### 10.4 Ablation Study Runner
+
+**File:** `backend/evaluation/ablation.py`
+
+```bash
+python -m backend.evaluation.ablation \
+  --records data/records.jsonl \
+  --store   data/vector_store.json \
+  --k       10 \
+  --split   0.8
+```
+
+Systematically measures the contribution of each profile layer by replacing it with a
+zero/neutral value and re-running both Task A and Task B evaluation.
+
+**Layers ablated:**
+
+| Layer | Zero value |
+|---|---|
+| `rating_stats` | count=0, mean=3.0, std\_dev=0.0 |
+| `stylometry` | all lengths and vocab richness = 0.0 |
+| `value_keywords` | all categories = 0 |
+| `trajectory` | all deltas and means = 0.0 |
+| `cultural_signals` | index=0.0, code\_switching=False, hits=0 |
+
+Output:
+```json
+{
+  "full_model": {
+    "task_a": {"rmse": 0.71, "rouge_l": 0.14},
+    "task_b": {"ndcg": 0.23, "hit_rate": 0.41}
+  },
+  "ablations": {
+    "cultural_signals": {
+      "task_a":       {"rmse": 0.79, "rouge_l": 0.11},
+      "task_a_delta": {"rmse_delta": 0.08, "rouge_l_delta": -0.03},
+      "task_b":       {"ndcg": 0.18, "hit_rate": 0.35},
+      "task_b_delta": {"ndcg_delta": -0.05, "hit_rate_delta": -0.06}
+    },
+    ...
+  }
+}
+```
+
+A large positive `rmse_delta` means removing that layer hurt Task A; a large negative
+`ndcg_delta` means it hurt Task B. These figures feed directly into the solution paper's
+feature importance analysis.
+
+### 10.5 Baselines
 
 ```python
 mean_rating_baseline(ratings)           → float      # global mean
@@ -1104,12 +1354,37 @@ Returns the static elicitation question list.
   "rating_stats":    { "count": 1, "mean": 4.0, "std_dev": 0.0, "min_rating": 4.0, "max_rating": 4.0 },
   "stylometry":      { "avg_review_length": 29.0, "avg_word_count": 5.0, "vocab_richness": 1.0, "avg_sentence_length": 5.0 },
   "value_keywords":  { "food": 1, "service": 0, "price": 0, "atmosphere": 0 },
-  "trajectory":      { "early_mean_rating": 0.0, "recent_mean_rating": 0.0, ... },
+  "trajectory":      { "early_mean_rating": 0.0, "recent_mean_rating": 0.0, "delta_rating": 0.0, ... },
   "cultural_signals":{ "nigerian_english_index": 0.0025, "code_switching_detected": false, "pidgin_term_hits": 0 }
 }
 ```
 
 **Errors:** 400 if `user_id` is empty.
+
+#### POST /profile/update
+
+Appends new interaction records to a user's existing history and returns the rebuilt profile.
+The profile cache uses a content hash of all records, so passing a superset always produces
+a fresh computation and the new profile is automatically cached.
+
+**Request:**
+```json
+{
+  "user_id": "u1",
+  "existing_records": [ { "item_id": "biz_01", "rating": 4.0, ... } ],
+  "new_records":      [ { "item_id": "biz_02", "rating": 3.5, ... } ]
+}
+```
+
+**Response:**
+```json
+{
+  "updated": true,
+  "profile": { ... }    // full PsychologicalProfile dict, same schema as /profile/build
+}
+```
+
+**Errors:** 400 if `user_id` is empty; 400 if `new_records` is empty.
 
 #### POST /task-a/simulate
 
@@ -1130,7 +1405,7 @@ Returns the static elicitation question list.
   "user_id": "u1",
   "target_item": { "name": "Kilimanjaro Restaurant", "description": "Nigerian cuisine" },
   "predicted_rating": 3.9,
-  "reasoning": "Rating derived from user mean with calibration.",
+  "reasoning": "User mean rating is 4.20 (σ=0.50, n=12); calibrated downward to 3.90 against population mean 3.50. Top preference axes: food (w=0.62). Review style: ~80 words, vocab richness 0.62. Nigerian English detected (index=0.04, pidgin hits=2); cultural register applied.",
   "review_text": "Really enjoyed this. The food was the highlight. Kilimanjaro Restaurant delivered what I was looking for. Abeg, try am yourself and see."
 }
 ```
@@ -1145,7 +1420,9 @@ Returns the static elicitation question list.
   "user_id": "u1",
   "records": [ ... ],
   "query_text": "spicy grilled food Lagos",
-  "top_k": 10
+  "top_k": 10,
+  "session_id": "sess-abc123",      // optional: enables multi-turn state
+  "constraints": {"cuisine": "Nigerian"}  // optional: merged into session constraints
 }
 ```
 
@@ -1163,7 +1440,7 @@ or with explicit vectors:
 }
 ```
 
-**Response:**
+**Response (without session):**
 ```json
 {
   "user_id": "u1",
@@ -1180,6 +1457,9 @@ or with explicit vectors:
   ]
 }
 ```
+
+**Response (with session):** same structure plus `"session_id": "sess-abc123"` at the top
+level; previously recommended items are excluded from `recommendations`.
 
 **Errors:** 400 if `user_id` is missing; 400 if neither `query_text` nor `query_vectors`
 is provided; 400 if `candidates` is missing when `query_text` is not provided.
@@ -1241,14 +1521,20 @@ All settings are read from environment variables at import time via `app_config_
 ```python
 @dataclass(frozen=True)
 class AppConfig:
-    deterministic_mode:         bool
-    profile_cache_ttl_seconds:  int
-    profile_cache_max_size:     int
-    enable_llm:                 bool
-    openai_api_key:             str
-    openai_model:               str
-    vector_store_path:          str
+    deterministic_mode:           bool
+    profile_cache_ttl_seconds:    int
+    profile_cache_max_size:       int
+    enable_llm:                   bool
+    openai_api_key:               str
+    openai_model:                 str
+    vector_store_path:            str   # single-domain store
+    vector_store_path_yelp:       str   # per-domain stores for cross-domain retrieval
+    vector_store_path_amazon:     str
+    vector_store_path_goodreads:  str
 ```
+
+`MultiVectorStoreService` is instantiated at startup if any of the three per-domain paths
+are non-empty; a single `VectorStoreService` is used otherwise.
 
 Helper functions handle type coercion with defaults:
 - `_get_bool_env(name, default)` — recognises `"1"`, `"true"`, `"yes"`, `"y"`.
@@ -1422,12 +1708,14 @@ private function (which signals it is not part of the module's contract).
 
 | Feature | Current implementation | Upgrade path |
 |---|---|---|
-| Vector database | `InMemoryVectorStore` (O(n) cosine scan) | Drop-in `ChromaDBVectorStore` behind `VectorStoreService` |
+| Vector database | `InMemoryVectorStore` (O(n) cosine scan) | Drop-in `ChromaDBVectorStore` behind `VectorStoreService` — interface is already stable |
 | LLM provider | OpenAI via `llm_client.py` | Add `AnthropicClient` / `OllamaClient` with same `chat_completion()` interface; update `llm_factory.py` |
-| Review generation | Template-based (`review_generator.py`) | Extend `TaskAService.simulate_review()` with BERTScore-ranked template selection or structured LLM prompting |
-| Evaluation | ROUGE-L only for text quality | Add `rouge-score` package for ROUGE-1/2, add `bert-score` package for BERTScore |
+| Review generation | Template + structured LLM prompts (`review_generator.py`, `llm_prompts.py`) | BERTScore-ranked template selection; expand cultural phrase library |
+| Evaluation text quality | ROUGE-L + optional BERTScore | Install `bert-score`; pass `--bertscore` flag to `task_a_eval` |
 | Cold-start elicitation | 4 fixed questions | Add adaptive question selection based on partial answer uncertainty |
 | Cultural signals | 12 fixed pidgin terms | Expand dictionary from sociolinguistic corpus; add Yoruba, Igbo, Hausa term sets |
-| Cross-domain retrieval | Single dataset vector store | Support multiple stores and merge results with source-specific weights |
-| Ablation studies | Manual | Add `evaluation/ablation.py` that runs evaluation with each profile layer zeroed out |
-| Multi-turn recommendation | Not implemented | Add session state to `/task-b/recommend` to update constraints across turns |
+| Cross-domain retrieval | `MultiVectorStoreService` with per-domain min-max normalisation | Add source reliability weights; cache per-domain embedding norms |
+| Ablation studies | `evaluation/ablation.py` with 5 layers | Add interaction-level ablation (e.g. ablate cold-start vs history users) |
+| Multi-turn recommendation | `session.py` + `SessionStore` with TTL+LRU | Persist sessions to Redis for multi-worker deployments |
+| Profile cache | In-process TTL+LRU | Add Redis or Memcached backend for multi-worker shared cache |
+| Reasoning trace | `_build_reasoning()` in task_a_service | Include trajectory plot data for frontend visualisation |

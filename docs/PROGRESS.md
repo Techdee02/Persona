@@ -1,6 +1,6 @@
 # Progress Log
 
-This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
+This document tracks task-by-task progress for Persona backend/AI-ML implementation.
 
 ## Phase 1 Checklist
 
@@ -35,6 +35,27 @@ This document tracks task-by-task progress for Persona backend/AI-ML Phase 1.
 - [x] Task 14: Dataset-specific ingestion helpers
 - [x] Task 15: Vector store persistence
 - [x] Task 16: Dataset ingestion CLI
+
+## Phase 4 Checklist (Full-Grade Refinement)
+
+- [x] Task 1: Bug fixes — deliberative scoring, agent plan wiring, task_b_service query_text path
+- [x] Task 2: Cold-start system (4 elicitation questions + bootstrap_profile)
+- [x] Task 3: Template-based review generator (generate_review from profile signals)
+- [x] Task 4: LLM retry with exponential backoff
+- [x] Task 5: Dataset row validation in loaders
+- [x] Task 6: Evaluation metrics (RMSE, ROUGE-L, NDCG@k, Hit Rate@k, baselines)
+- [x] Task 7: Task A evaluation runner (CLI)
+- [x] Task 8: Task B evaluation runner with ablation support and per-user breakdown
+- [x] Task 9: Ablation study runner (zero each profile layer, report RMSE/NDCG delta)
+- [x] Task 10: Richer Task A reasoning trace (_build_reasoning from profile signals)
+- [x] Task 11: Structured LLM prompts module (culturally-calibrated Task A + Task B prompts)
+- [x] Task 12: Session state for multi-turn Task B (SessionState, SessionStore, TTL+LRU)
+- [x] Task 13: Cross-domain retrieval (MultiVectorStoreService, per-domain normalisation)
+- [x] Task 14: BERTScore + per-user breakdown in Task A eval runner
+- [x] Task 15: POST /profile/update endpoint
+- [x] Task 16: Docker + docker-compose
+- [x] Task 17: Comprehensive backend architecture documentation
+- [x] Task 18: 114 tests passing (all modules covered)
 
 ## Task Logs
 
@@ -264,3 +285,189 @@ Notes:
 - Added CLI to ingest dataset JSONL and persist vector store
 - Added CLI smoke test
 - Tests: python -m pytest backend/tests
+
+---
+
+## Phase 4 Task Logs
+
+### Phase 4 Task 1: Bug fixes
+
+Status: Done
+
+Notes:
+- deliberative_scoring.py: fixed global-constant axis_score to per-candidate metadata matching
+- task_b_agent_service.py: LLM dead-code fixed; score_candidates now wired via $ref
+- agent_tool_defs.py: _score_candidates now converts dict/list axes to PreferenceAxis objects
+- task_b_service.py: query_text path now uses vector store results directly (no zero-vector bypass)
+- data/split.py: timestamp_key made public; trajectory.py updated to import it
+- Tests: python -m pytest backend/tests
+
+### Phase 4 Task 2: Cold-start system
+
+Status: Done
+
+Notes:
+- Created backend/cold_start.py with 4 elicitation questions and signal map
+- bootstrap_profile() returns complete PsychologicalProfile (count=0, zero trajectory)
+- Added GET /cold-start/questions and POST /cold-start/answer endpoints
+- 7 unit tests + 4 endpoint tests
+- Tests: python -m pytest backend/tests
+
+### Phase 4 Task 3: Template-based review generator
+
+Status: Done
+
+Notes:
+- Created backend/review_generator.py with sentiment-based openers, value phrases, pidgin closers
+- Cultural closer used when code_switching_detected; trimmed to 1.5× avg_review_length
+- seed parameter for deterministic output
+- Wired into TaskAService replacing the previous stub string
+- 7 unit tests
+- Tests: python -m pytest backend/tests
+
+### Phase 4 Task 4: LLM retry with exponential backoff
+
+Status: Done
+
+Notes:
+- backend/llm_client.py: 3 attempts, 1s→2s→4s delay
+- Catches RateLimitError and APIStatusError with codes {429,500,502,503,504}
+- Non-retryable errors (400, 401) re-raised immediately
+- Tests: python -m pytest backend/tests
+
+### Phase 4 Task 5: Dataset row validation
+
+Status: Done
+
+Notes:
+- backend/data/loaders.py: _row_to_record returns (record, error_str) tuple
+- Validates: non-empty user_id, non-empty item_id, parseable float rating, rating in [0.0, 5.0]
+- Logs WARNING with total skip count per file
+- 4 unit tests
+- Tests: python -m pytest backend/tests
+
+### Phase 4 Task 6–8: Evaluation system
+
+Status: Done
+
+Notes:
+- backend/evaluation/metrics.py: RMSE, ROUGE-L (LCS-based pure Python), NDCG@k, Hit Rate@k
+- backend/evaluation/task_a_eval.py: CLI runner with temporal split
+- backend/evaluation/task_b_eval.py: CLI runner with vector store + deliberative scoring
+- Both runners updated with per-user breakdown (sparse/medium/dense + cultural signal)
+- task_b_eval supports ablate_layer parameter for ablation runner
+- 13 metric unit tests
+- Tests: python -m pytest backend/tests
+
+### Phase 4 Task 9: Ablation study runner
+
+Status: Done
+
+Notes:
+- backend/evaluation/ablation.py: zeroes each profile layer in turn
+- Re-runs Task A (RMSE, ROUGE-L) and Task B (NDCG, Hit Rate) for each ablated profile
+- Reports delta vs full model for all four metrics
+- CLI: python -m backend.evaluation.ablation --records ... --store ... --k 10
+- Tests: python -m pytest backend/tests
+
+### Phase 4 Task 10: Richer Task A reasoning trace
+
+Status: Done
+
+Notes:
+- backend/task_a_service.py: _build_reasoning() derives detailed string from all signal layers
+- Covers: calibration direction, top preference axes with weights, trajectory drift (when ≥0.3),
+  stylometry fingerprint, cultural register (when code-switching detected)
+- 7 unit tests (test_task_a_reasoning.py)
+- Tests: python -m pytest backend/tests
+
+### Phase 4 Task 11: Structured LLM prompts module
+
+Status: Done
+
+Notes:
+- backend/llm_prompts.py: build_task_a_prompt(), build_task_b_prompt()
+- System prompts adapt based on code_switching_detected and nigerian_english_index
+- Task A user message includes structured profile summary + target item block
+- Task B user message includes axes, session context, candidate list
+- Wired into task_a_service (LLM path) and task_b_agent_service
+- 8 unit tests
+- Tests: python -m pytest backend/tests
+
+### Phase 4 Task 12: Session state for multi-turn Task B
+
+Status: Done
+
+Notes:
+- backend/session.py: SessionState, SessionStore with TTL+LRU eviction
+- excluded_ids accumulate across turns; constraints merged per request
+- session_id support in POST /task-b/recommend: get_or_create, filter, update
+- context_summary() for LLM prompt injection
+- 7 unit tests
+- Tests: python -m pytest backend/tests
+
+### Phase 4 Task 13: Cross-domain retrieval
+
+Status: Done
+
+Notes:
+- backend/multi_vector_store.py: MultiVectorStoreService fans queries to per-domain stores
+- Per-domain min-max score normalisation before merge
+- Deduplication by item_id (highest score wins); faulty stores skipped with ERROR log
+- Three new env vars: VECTOR_STORE_PATH_YELP, _AMAZON, _GOODREADS
+- Wired into app.py startup; activated when any per-domain path is configured
+- 7 unit tests
+- Tests: python -m pytest backend/tests
+
+### Phase 4 Task 14: BERTScore + per-user breakdown in Task A eval
+
+Status: Done
+
+Notes:
+- task_a_eval.py: optional --bertscore flag using bert_score (graceful warning if not installed)
+- Per-user breakdown by history length (sparse/medium/dense) and cultural signal
+- Same breakdown added to task_b_eval.py
+- Tests: python -m pytest backend/tests
+
+### Phase 4 Task 15: POST /profile/update endpoint
+
+Status: Done
+
+Notes:
+- backend/app.py: POST /profile/update accepts existing_records + new_records
+- Merges lists and calls build_profile_cached; content-hash cache ensures fresh build
+- Returns {updated: true, profile: {...}}
+- 4 endpoint tests (test_profile_update_endpoint.py)
+- Tests: python -m pytest backend/tests
+
+### Phase 4 Task 16: Docker + docker-compose
+
+Status: Done
+
+Notes:
+- backend/Dockerfile: python:3.12-slim, uvicorn entrypoint
+- docker-compose.yml: single api service, .env mounting, ./data:/data volume, health-check
+- Tests: docker compose up --build (manual verification)
+
+### Phase 4 Task 17: Comprehensive documentation
+
+Status: Done
+
+Notes:
+- docs/Backend-Architecture.md: 14 sections, ~1700 lines covering all modules, API contracts,
+  design decisions, extension points
+- README.md: updated architecture diagram, repo layout, env var table, eval examples,
+  API endpoint table, test count
+- docs/PROGRESS.md: this file
+- docs/Backend-AIML-Phases.md: phase breakdown and acceptance criteria
+
+### Phase 4 Task 18: Full test coverage
+
+Status: Done
+
+Notes:
+- 114 tests, all passing (~32s)
+- New test modules: test_session.py, test_llm_prompts.py, test_multi_vector_store.py,
+  test_task_a_reasoning.py, test_profile_update_endpoint.py, test_task_b_agent_endpoint.py
+- All modules covered: cold_start, review_generator, metrics, loaders, vector_store_service,
+  deliberative_scoring, agent, task_a, task_b, session, multi_vector_store, llm_prompts
