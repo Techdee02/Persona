@@ -15,31 +15,46 @@ class DatasetIngestConfig:
     metadata_fields: List[str]
 
 
-def ingest_yelp_reviews(path: str) -> InMemoryVectorStore:
-    config = DatasetIngestConfig(
+def ingest_yelp_reviews(
+    path: str,
+    batch_size: int = 512,
+    limit: int | None = None,
+) -> InMemoryVectorStore:
+    return ingest_dataset(
         dataset_path=path,
         text_field="text",
         id_field="business_id",
         metadata_fields=["name", "categories", "stars"],
+        batch_size=batch_size,
+        limit=limit,
     )
-    return ingest_dataset(**config.__dict__)
 
 
-def ingest_amazon_reviews(path: str) -> InMemoryVectorStore:
-    config = DatasetIngestConfig(
+def ingest_amazon_reviews(
+    path: str,
+    batch_size: int = 512,
+    limit: int | None = None,
+) -> InMemoryVectorStore:
+    return ingest_dataset(
         dataset_path=path,
         text_field="reviewText",
         id_field="asin",
         metadata_fields=["summary", "overall"],
+        batch_size=batch_size,
+        limit=limit,
     )
-    return ingest_dataset(**config.__dict__)
 
 
-def ingest_goodreads_reviews(path: str) -> InMemoryVectorStore:
-    config = DatasetIngestConfig(
+def ingest_goodreads_reviews(
+    path: str,
+    batch_size: int = 512,
+    limit: int | None = None,
+) -> InMemoryVectorStore:
+    return ingest_dataset(
         dataset_path=path,
         text_field="review_text",
         id_field="book_id",
         metadata_fields=["rating"],
+        batch_size=batch_size,
+        limit=limit,
     )
-    return ingest_dataset(**config.__dict__)
