@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Request, Response
 import logging
 import uuid
 
+from .config import app_config_from_env
 from .data.schema import InteractionRecord
 from .logging_utils import configure_logging
 from .services.profile_service import ProfileService
@@ -16,11 +17,13 @@ import numpy as np
 configure_logging()
 logger = logging.getLogger("persona.api")
 
+_config = app_config_from_env()
+
 app = FastAPI(title="Persona API", version="0.1.0")
 profile_service = ProfileService()
 llm_client = create_openai_client()
 task_a_service = TaskAService(profile_service=profile_service, llm_client=llm_client)
-vector_store_service = VectorStoreService.create()
+vector_store_service = VectorStoreService.create(store_path=_config.vector_store_path)
 task_b_service = TaskBService(profile_service=profile_service, vector_store_service=vector_store_service)
 task_b_agent_service = TaskBAgentService(profile_service=profile_service, llm_client=llm_client)
 

@@ -17,6 +17,7 @@ class AppConfig:
     enable_llm: bool
     openai_api_key: str
     openai_model: str
+    vector_store_path: str
 
 
 def _get_env(name: str) -> str:
@@ -42,6 +43,7 @@ def app_config_from_env() -> AppConfig:
         enable_llm=_get_bool_env("ENABLE_LLM", default=False),
         openai_api_key=os.getenv("OPENAI_API_KEY", "").strip(),
         openai_model=os.getenv("OPENAI_MODEL", "gpt-4o"),
+        vector_store_path=os.getenv("VECTOR_STORE_PATH", "").strip(),
     )
 
 

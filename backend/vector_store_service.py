@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, List, Optional
 
 from .embeddings import EmbeddingModel, embed_texts, load_embedding_model
 from .vector_store import InMemoryVectorStore
+from .vector_store_persist import load_vector_store
+
+logger = logging.getLogger("persona.vector_store_service")
 
 
 @dataclass
@@ -13,9 +18,22 @@ class VectorStoreService:
     embedding_model: EmbeddingModel
 
     @classmethod
-    def create(cls, model_name: str = "all-MiniLM-L6-v2") -> "VectorStoreService":
+    def create(
+        cls,
+        model_name: str = "all-MiniLM-L6-v2",
+        store_path: str = "",
+    ) -> "VectorStoreService":
         embedding_model = load_embedding_model(model_name)
-        return cls(store=InMemoryVectorStore(items=[]), embedding_model=embedding_model)
+
+        if store_path and Path(store_path).exists():
+            store = load_vector_store(store_path)
+            logger.info("Loaded vector store from %s (%d items)", store_path, len(store.items))
+        else:
+            if store_path:
+                logger.warning("VECTOR_STORE_PATH set to %s but file not found; starting empty", store_path)
+            store = InMemoryVectorStore(items=[])
+
+        return cls(store=store, embedding_model=embedding_model)
 
     def add_text_items(self, items: List[Dict[str, object]], text_field: str) -> None:
         texts = [str(item.get(text_field, "")) for item in items]
