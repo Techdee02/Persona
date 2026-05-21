@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Request, Response
 import logging
 import uuid
 
+from .cold_start import COLD_START_QUESTIONS, ColdStartAnswer, bootstrap_profile
 from .config import app_config_from_env
 from .data.schema import InteractionRecord
 from .logging_utils import configure_logging
@@ -200,3 +201,30 @@ def task_b_agent(payload: dict) -> dict:
         penalties=penalties,
         use_llm=use_llm,
     )
+
+
+@app.get("/cold-start/questions")
+def cold_start_questions() -> dict:
+    return {"questions": COLD_START_QUESTIONS}
+
+
+@app.post("/cold-start/answer")
+def cold_start_answer(payload: dict) -> dict:
+    user_id = str(payload.get("user_id", "")).strip()
+    raw_answers = payload.get("answers", [])
+
+    if not user_id:
+        raise HTTPException(status_code=400, detail="user_id is required")
+    if not raw_answers:
+        raise HTTPException(status_code=400, detail="answers are required")
+
+    answers = [
+        ColdStartAnswer(
+            question_id=str(ans.get("question_id", "")).strip(),
+            answer=str(ans.get("answer", "")).strip(),
+        )
+        for ans in raw_answers
+    ]
+
+    profile = bootstrap_profile(user_id, answers)
+    return profile.to_dict()

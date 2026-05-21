@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 
 from .rating_calibration import build_rating_calibration
+from .review_generator import generate_review
 from .services.profile_service import ProfileService
 from .data.schema import InteractionRecord
 from .llm_client import OpenAIClient
@@ -34,12 +35,13 @@ class TaskAService:
         base_rating = profile.rating_stats.mean if profile.rating_stats.count else 3.0
         calibrated = calibration.calibrate(base_rating)
 
-        review_text = "(stub) Review generation will be added in Phase 4."
         reasoning = "Rating derived from user mean with calibration."
 
         if use_llm and self._llm_client:
             review_text = _generate_review_with_llm(self._llm_client, profile.to_dict(), target_item)
             reasoning = "Rating derived from calibration; review generated via LLM."
+        else:
+            review_text = generate_review(profile, target_item)
 
         return {
             "user_id": user_id,
