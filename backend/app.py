@@ -67,7 +67,7 @@ def _parse_records(raw: list, default_user_id: str) -> list:
             user_id=str(r.get("user_id", default_user_id)).strip(),
             item_id=str(r.get("item_id", "")).strip(),
             rating=float(r.get("rating", 0.0)),
-            review_text=str(r.get("review_text", "")).strip(),
+            review_text=str(r.get("review_text") or r.get("text", "")).strip(),
             timestamp=str(r.get("timestamp", "")).strip() or None,
             source=str(r.get("source", "")).strip() or "unknown",
         )

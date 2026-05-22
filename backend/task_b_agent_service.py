@@ -93,16 +93,20 @@ class TaskBAgentService:
         if not tool_calls:
             return _deterministic_plan(user_id, records, query_vectors, candidates, top_k, weights, penalties)
 
-        # Use the LLM's tool ordering but supply system-defined arguments for each step.
+        # Use LLM's ordering for tools it returned; always include all 4 steps.
+        required_order = ["build_profile", "extract_axes", "retrieve_candidates", "score_candidates"]
         det = {call.name: call for call in _deterministic_plan(
             user_id, records, query_vectors, candidates, top_k, weights, penalties
         )}
-        plan = [
-            det[tc.get("function", {}).get("name", "")]
+        llm_names = [
+            tc.get("function", {}).get("name", "")
             for tc in tool_calls
             if tc.get("function", {}).get("name", "") in det
         ]
-        return plan if plan else list(det.values())
+        # Fill in any steps the LLM omitted, preserving the required execution order.
+        seen = set(llm_names)
+        full_names = llm_names + [n for n in required_order if n not in seen]
+        return [det[n] for n in full_names if n in det]
 
 
 def _deterministic_plan(
