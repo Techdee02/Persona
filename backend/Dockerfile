@@ -2,10 +2,12 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy requirements first so pip layer is cached unless dependencies change
+COPY backend/requirements.txt ./backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt
 
-COPY .. .
+# Copy the full repo (build context is repo root)
+COPY . .
 
 ENV PYTHONUNBUFFERED=1
 
