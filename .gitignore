@@ -2,3 +2,17 @@ __pycache__/
 *.pyc
 *.pyo
 .env
+
+# Large dataset and vector store files
+data/*.json
+data/*.jsonl
+data/*.log
+data/*.pdf
+data/*.tar
+data/*.gz
+*.tar
+*.tar.gz
+
+# Untracked documents
+*.docx
+AfriForge_PRD.pdf
