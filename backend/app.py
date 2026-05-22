@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 import logging
 import uuid
 
@@ -23,6 +24,17 @@ logger = logging.getLogger("persona.api")
 _config = app_config_from_env()
 
 app = FastAPI(title="Persona API", version="0.1.0")
+
+# CORS — allow the Vercel frontend (and any other configured origins) to call this API.
+# Set ALLOWED_ORIGINS="https://yourapp.vercel.app" in .env; leave empty to allow all origins.
+_origins = [o.strip() for o in _config.allowed_origins.split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_origins if _origins else ["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 profile_service = ProfileService()
 llm_client = create_openai_client()
 task_a_service = TaskAService(profile_service=profile_service, llm_client=llm_client)

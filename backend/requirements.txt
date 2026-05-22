@@ -5,6 +5,7 @@ httpx
 numpy
 openai
 python-dotenv
+boto3
 sentence-transformers
 pydantic
 # Optional: install for BERTScore computation in task_a_eval --bertscore

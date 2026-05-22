@@ -30,6 +30,7 @@ class AppConfig:
     vector_store_path_yelp: str
     vector_store_path_amazon: str
     vector_store_path_goodreads: str
+    allowed_origins: str  # comma-separated CORS origins, e.g. "https://myapp.vercel.app"
 
 
 def _get_env(name: str) -> str:
@@ -59,6 +60,7 @@ def app_config_from_env() -> AppConfig:
         vector_store_path_yelp=os.getenv("VECTOR_STORE_PATH_YELP", "").strip(),
         vector_store_path_amazon=os.getenv("VECTOR_STORE_PATH_AMAZON", "").strip(),
         vector_store_path_goodreads=os.getenv("VECTOR_STORE_PATH_GOODREADS", "").strip(),
+        allowed_origins=os.getenv("ALLOWED_ORIGINS", "").strip(),
     )
 
 
