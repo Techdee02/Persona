@@ -282,6 +282,18 @@ A **50,000-item Yelp vector store** has been built from the Yelp Academic Datase
 startup when `VECTOR_STORE_PATH` points to it. End-to-end tested: `/task-b/recommend`
 returns real Yelp recommendations with cosine similarity scores in 0.55–0.76 range.
 
+### API record format
+
+All endpoints that accept a `records` array support both field naming conventions:
+
+| Field | Accepted as |
+|---|---|
+| `review_text` | Primary field (canonical, used by evaluation scripts) |
+| `text` | Fallback (Yelp-style; used when `review_text` is absent) |
+
+Using `text` is equivalent to `review_text`. Sending neither produces all-zero signal
+profiles (stylometry, cultural signals, value keywords all suppressed).
+
 ---
 
 ## Evaluation
@@ -380,14 +392,23 @@ Zeroes out each profile layer in turn (rating\_stats, stylometry, value\_keyword
 | `POST` | `/cold-start/answer` | Bootstrap a profile from elicitation answers |
 | `POST` | `/profile/build` | Build a profile from full interaction history |
 | `POST` | `/profile/update` | Append new records and return the rebuilt profile |
-| `POST` | `/task-a/simulate` | Predict rating + detailed reasoning trace + generated review |
+| `POST` | `/task-a/simulate` | Predict rating + detailed reasoning trace + generated review (`use_llm` flag) |
 | `POST` | `/task-b/recommend` | Rank items with profile axes, deliberative scoring, session support |
-| `POST` | `/task-b/agent` | Agentic Task B with optional LLM tool-call planning |
+| `POST` | `/task-b/agent` | Agentic Task B with optional LLM 4-step tool-call planning |
 
 Full request/response schemas: `http://localhost:8000/docs`
 
 For detailed endpoint contracts, architecture decisions, and module-level design, see
 [docs/Backend-Architecture.md](docs/Backend-Architecture.md).
+
+### LLM path (Task A)
+
+Set `"use_llm": true` and configure `ENABLE_LLM=true` + `OPENAI_API_KEY` in `.env`.
+The system detects Nigerian English and code-switching signals; when present, the LLM
+prompt instructs gpt-4o to write in the user's cultural register. Example output for
+a user with detected pidgin patterns:
+
+> *"Food dey okay, but price no too friendly. Na wa for service."*
 
 ---
 

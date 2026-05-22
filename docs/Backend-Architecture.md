@@ -875,10 +875,20 @@ When `use_llm=True`:
    since the LLM provides no useful arguments — just ordering).
 2. Send a chat completion with `tool_choice="auto"`.
 3. Parse the returned `tool_calls` list to extract the tool name ordering.
-4. Build the plan by looking up each name in the deterministic plan's `arg_map`.
-   This uses the LLM's **ordering** but the system's **arguments**.
-5. If the LLM returns no tool calls or unrecognised names, fall back to the deterministic
-   plan.
+4. Map LLM-returned names to their deterministic `ToolCall` objects (system-defined
+   arguments). This uses the LLM's **ordering** but the system's **arguments**.
+5. Append any required steps the LLM omitted, in canonical execution order
+   (`build_profile → extract_axes → retrieve_candidates → score_candidates`).
+   This guarantees all 4 steps always run, even if the LLM returns a partial plan.
+6. If the LLM returns no tool calls or only unrecognised names, fall back to the
+   deterministic plan entirely.
+
+**Why fill in omitted steps?** In practice, OpenAI's `tool_choice="auto"` may return
+only the first 1–2 tool calls in a single response. Without the fill-in logic, the
+agent silently stops after those steps — `retrieve_candidates` and `score_candidates`
+never run and the response returns no ranked items. The guarantee that all 4 steps
+execute regardless of LLM output makes the agent path as reliable as the deterministic
+path.
 
 **Why this design**: the LLM's value is in deciding which steps to run and in what
 order based on the context, not in generating correct arguments (it cannot, since it
@@ -1321,6 +1331,23 @@ and serve as the denominator for improvement claims in the solution paper.
 
 **File:** `backend/app.py`
 
+### 11.0 Record Parsing
+
+All endpoints that accept a `records` array pass through `_parse_records()`, which maps
+raw JSON dicts to `InteractionRecord` dataclasses. The `review_text` field accepts two
+source keys to accommodate different caller conventions:
+
+```python
+review_text = r.get("review_text") or r.get("text", "")
+```
+
+`review_text` takes precedence when present; `text` is the fallback. This matters because:
+- Evaluation scripts and the data loaders use `review_text` (canonical field name).
+- Direct API callers and Yelp-style payloads often use `text`.
+- All downstream signal extractors (stylometry, value keywords, cultural signals,
+  trajectory) operate on `review_text`; an empty string produces all-zero signals
+  and suppresses cultural register detection.
+
 ### 11.1 Endpoint Contracts
 
 #### GET /health
@@ -1696,12 +1723,16 @@ raises `ValueError` for log records that originate outside the HTTP request life
 ```dockerfile
 FROM python:3.12-slim
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY .. .
+# Build context is repo root (set in docker-compose.yml context: .)
+COPY backend/requirements.txt ./backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt
+COPY . .
 ENV PYTHONUNBUFFERED=1
 CMD ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
+
+Both `backend/services/__init__.py` and `backend/tests/__init__.py` are committed as
+explicit empty package markers, required for consistent imports inside Docker.
 
 **`docker-compose.yml`**
 ```yaml
@@ -1786,6 +1817,25 @@ before embedding would require multi-GB RAM before the first vector is produced.
 reads and embedding in `batch_size` chunks (default 512) caps peak memory to roughly
 one batch plus the growing store, making it possible to ingest any dataset size on
 commodity hardware.
+
+### Why accept both `review_text` and `text` in record parsing?
+
+The canonical field name inside `InteractionRecord` is `review_text` (matches the
+evaluation scripts and data loaders). However, direct API callers and Yelp-style
+payloads naturally use `text`. Without the fallback, callers who send `text` receive
+all-zero stylometry, value keyword, trajectory, and cultural signals — the profile
+appears as a new user with no history. The fallback is a one-line change that eliminates
+an entire class of silent misconfiguration.
+
+### Why guarantee all 4 agent steps even when the LLM returns fewer?
+
+`tool_choice="auto"` in a single OpenAI chat completion may return only 1–2 tool calls;
+the model is not required to exhaust the list in one shot. Mapping only the returned
+names caused the agent to silently stop after `extract_axes`, returning a response with
+an empty `score_candidates` result. The fill-in ensures `retrieve_candidates` and
+`score_candidates` always execute regardless of LLM output, making the agent path as
+reliable as the deterministic path while still respecting any reordering the LLM
+chooses.
 
 ---
 

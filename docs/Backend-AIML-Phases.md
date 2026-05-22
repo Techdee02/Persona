@@ -89,7 +89,7 @@ Acceptance criteria:
 
 ## Phase 5: Operational Readiness ✓ Complete
 
-Goal: get the real-data vector store live and fix operational bugs revealed by end-to-end runs.
+Goal: get the real-data vector store live, fix deployment blockers, and validate the full LLM pipeline end-to-end.
 
 Deliverables (all delivered):
 - Streaming JSONL persistence — fixed silent OOM on large stores ✓
@@ -98,12 +98,20 @@ Deliverables (all delivered):
 - Logging formatter fix — trace_id filter correctly attached to handlers ✓
 - .gitignore extended — large data/vector store files excluded ✓
 - 50k Yelp vector store built and end-to-end validated ✓
+- Dockerfile COPY paths corrected; backend/services and backend/tests __init__.py added ✓
+- Record parser accepts both `review_text` and `text` field names ✓
+- Agent plan guaranteed to run all 4 steps even when LLM returns fewer ✓
+- Full LLM end-to-end validation (gpt-4o): Task A culturally-calibrated review generation
+  and Task B 4-step agent pipeline both confirmed working ✓
 
 Acceptance criteria:
 - API loads 50k-item Yelp vector store at startup ✓
 - /task-b/recommend returns real Yelp recommendations with scored results ✓
-- /task-a/simulate returns rating + reasoning trace + generated review ✓
-- All endpoints tested and responding correctly ✓
+- /task-a/simulate use_llm=true: Nigerian English detected, pidgin review generated ✓
+- /task-b/agent use_llm=true: all 4 steps execute, cultural_register axis extracted ✓
+- All 8 endpoints tested and responding correctly ✓
+- 114 tests passing after all fixes ✓
+- Docker deployment artifacts correct and all source files tracked in git ✓
 
 ## Phase Risks and Mitigations
 
@@ -112,10 +120,10 @@ Acceptance criteria:
 - Latency: profile TTL+LRU cache; template path avoids LLM when not needed
 - Multi-worker cache consistency: current in-process cache; Redis upgrade path documented
 - Vector store disk space: JSONL streaming write/read; stores excluded from git via .gitignore
+- LLM partial tool-call responses: agent plan fill-in ensures all 4 steps always execute
 
 ## Open Questions
 
-- Which LLM is final for demo and judging?
 - BERTScore: include in final evaluation report? (requires `bert-score` install)
 - Cross-domain retrieval domain weights: should Yelp or Amazon score higher for restaurant queries?
 - Expand Yelp store to 200k+ records for denser retrieval coverage (overnight job)?

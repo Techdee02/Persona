@@ -482,6 +482,10 @@ Notes:
 - [x] Task 4: Logging formatter fix (trace_id filter on handlers, not root logger)
 - [x] Task 5: .gitignore — exclude large data/vector store files
 - [x] Task 6: 50k Yelp vector store built and end-to-end validated
+- [x] Task 7: Dockerfile COPY paths fixed + missing __init__.py files added
+- [x] Task 8: Record parser accepts both `review_text` and `text` fields
+- [x] Task 9: Agent plan always runs all 4 steps even when LLM returns fewer
+- [x] Task 10: Full LLM end-to-end validation (Task A + Task B agent with OpenAI)
 
 ## Phase 5 Task Logs
 
@@ -561,3 +565,63 @@ Notes:
 - POST /task-a/simulate: rating + reasoning trace + template review all correct
 - GET /cold-start/questions: all 4 questions returned
 - All 8 endpoints tested and responding correctly
+
+### Phase 5 Task 7: Dockerfile COPY paths and missing __init__.py files
+
+Status: Done
+
+Notes:
+- Dockerfile built with context=. (repo root) but used `COPY requirements.txt .`
+  (no file at repo root) and `COPY .. .` (above build context — Docker error)
+- Fix: `COPY backend/requirements.txt ./backend/requirements.txt` and `COPY . .`
+- backend/services/__init__.py and backend/tests/__init__.py were absent; added
+  empty files so both sub-packages are explicit Python packages (required for
+  consistent imports inside Docker and strict-mode environments)
+- Commit: 63962a8
+
+### Phase 5 Task 8: Record parser accepts both `review_text` and `text` fields
+
+Status: Done
+
+Notes:
+- _parse_records in app.py called r.get("review_text", "") only; callers sending
+  Yelp-style "text" field got empty review text, zeroing stylometry, value
+  keywords, trajectory, and cultural signals (code_switching_detected always false)
+- Fix: r.get("review_text") or r.get("text", "") — prefers review_text, falls
+  back to text; all signal extractors now receive review content correctly
+- Validated: Nigerian user with pidgin reviews correctly detected
+  nigerian_english_index=0.12, code_switching_detected=true, pidgin_term_hits=7
+- Commit: 4cbcb5a
+
+### Phase 5 Task 9: Agent plan always runs all 4 steps
+
+Status: Done
+
+Notes:
+- _plan_with_llm mapped only the tool calls the LLM returned in its response;
+  when the LLM returned 2 calls (build_profile, extract_axes) the agent silently
+  stopped and never ran retrieve_candidates or score_candidates
+- Fix: after mapping LLM-returned names, append any required steps not present
+  in the LLM response, preserving execution order
+  (build_profile → extract_axes → retrieve_candidates → score_candidates)
+- Commit: 4cbcb5a
+
+### Phase 5 Task 10: Full LLM end-to-end validation
+
+Status: Done
+
+Notes:
+- ENABLE_LLM=true, OPENAI_MODEL=gpt-4o confirmed working with live API key
+- POST /task-a/simulate use_llm=true:
+  - Rating calibrated correctly (4.0, σ=1.22, n=4)
+  - Full 5-component reasoning trace including Nigerian English detection
+    (index=0.12, pidgin hits=7, code_switching_detected=true)
+  - LLM generated culturally-calibrated pidgin review:
+    "Food dey okay, but price no too friendly. Na wa for service."
+- POST /task-b/agent use_llm=true:
+  - All 4 agent steps executed: build_profile → extract_axes →
+    retrieve_candidates → score_candidates
+  - cultural_register axis correctly extracted (code_switching_detected=true)
+  - LLM planning + deterministic argument filling confirmed working
+- POST /task-b/recommend (no LLM): 5 Yelp items, cosine 0.57–0.76
+- 114 tests still passing after all fixes
