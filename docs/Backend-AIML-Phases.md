@@ -1,7 +1,7 @@
 # Backend AI/ML Phases
 
 Owner: Backend AI/ML Developer
-Last updated: 2026-05-21
+Last updated: 2026-05-22
 
 This document breaks backend and AI/ML work into three phases: pipeline readiness, production hardening, and full-grade refinement.
 
@@ -87,15 +87,35 @@ Acceptance criteria:
 - Ablation results ready for the solution paper ✓
 - Full test coverage across all modules ✓
 
+## Phase 5: Operational Readiness ✓ Complete
+
+Goal: get the real-data vector store live and fix operational bugs revealed by end-to-end runs.
+
+Deliverables (all delivered):
+- Streaming JSONL persistence — fixed silent OOM on large stores ✓
+- Streaming batched ingestion + --limit / --batch-size CLI flags ✓
+- python-dotenv integration — .env auto-loaded at startup ✓
+- Logging formatter fix — trace_id filter correctly attached to handlers ✓
+- .gitignore extended — large data/vector store files excluded ✓
+- 50k Yelp vector store built and end-to-end validated ✓
+
+Acceptance criteria:
+- API loads 50k-item Yelp vector store at startup ✓
+- /task-b/recommend returns real Yelp recommendations with scored results ✓
+- /task-a/simulate returns rating + reasoning trace + generated review ✓
+- All endpoints tested and responding correctly ✓
+
 ## Phase Risks and Mitigations
 
 - LLM instability: deterministic mode, caching, and structured prompts mitigate this
 - Data sparsity: cold-start bootstrap profile handles new users without history
 - Latency: profile TTL+LRU cache; template path avoids LLM when not needed
 - Multi-worker cache consistency: current in-process cache; Redis upgrade path documented
+- Vector store disk space: JSONL streaming write/read; stores excluded from git via .gitignore
 
 ## Open Questions
 
 - Which LLM is final for demo and judging?
 - BERTScore: include in final evaluation report? (requires `bert-score` install)
 - Cross-domain retrieval domain weights: should Yelp or Amazon score higher for restaurant queries?
+- Expand Yelp store to 200k+ records for denser retrieval coverage (overnight job)?

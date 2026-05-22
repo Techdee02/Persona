@@ -164,12 +164,15 @@ cp .env.example .env
 # Edit .env with your values
 ```
 
+`config.py` automatically loads `.env` at import time via `python-dotenv` — no manual
+`export` step is required. Values already in the environment take precedence.
+
 | Variable | Default | Description |
 |---|---|---|
 | `DATASET_YELP_PATH` | — | Absolute path to Yelp JSONL |
 | `DATASET_AMAZON_PATH` | — | Absolute path to Amazon JSONL |
 | `DATASET_GOODREADS_PATH` | — | Absolute path to Goodreads JSONL |
-| `VECTOR_STORE_PATH` | _(empty)_ | Pre-built vector store JSON to load at startup |
+| `VECTOR_STORE_PATH` | _(empty)_ | Pre-built vector store JSONL to load at startup |
 | `VECTOR_STORE_PATH_YELP` | _(empty)_ | Per-domain Yelp store for cross-domain retrieval |
 | `VECTOR_STORE_PATH_AMAZON` | _(empty)_ | Per-domain Amazon store |
 | `VECTOR_STORE_PATH_GOODREADS` | _(empty)_ | Per-domain Goodreads store |
@@ -201,7 +204,7 @@ accessible at the path set in `VECTOR_STORE_PATH`.
 
 ```bash
 python -m pytest backend/tests -v
-# 114 tests, ~32 s
+# 114 tests, all passing
 ```
 
 ---
@@ -218,22 +221,27 @@ Dataset JSONL
     ▼
 ingest_datasets.py    (dataset-specific field mapping)
     ▼
-ingest_embeddings.py  (sentence-transformers encode → float vectors)
+ingest_embeddings.py  (streaming batch embed → sentence-transformers)
     ▼
 InMemoryVectorStore   (cosine-similarity index)
     ▼
-vector_store_persist  (save as JSON snapshot)
+vector_store_persist  (stream-write JSONL, one item per line)
     ▼
-API startup           (load JSON when VECTOR_STORE_PATH is set)
+API startup           (stream-read JSONL when VECTOR_STORE_PATH is set)
 ```
+
+Ingestion is fully streaming: records are read and embedded in configurable batches
+(`--batch-size`, default 512). Memory usage is bounded regardless of dataset size.
 
 ### CLI
 
 ```bash
 python -m backend.cli \
-  --dataset  yelp|amazon|goodreads \
-  --input    /path/to/dataset.jsonl \
-  --output   /path/to/vector_store.json
+  --dataset    yelp|amazon|goodreads \
+  --input      /path/to/dataset.jsonl \
+  --output     /path/to/vector_store.jsonl \
+  --limit      50000   \  # optional: cap records (useful for dev stores)
+  --batch-size 512         # optional: embedding batch size (default 512)
 ```
 
 **Field mapping**
@@ -244,16 +252,35 @@ python -m backend.cli \
 | Amazon | `reviewText` | `asin` | `summary`, `overall` |
 | Goodreads | `review_text` | `book_id` | `rating` |
 
-### Startup loading
+### Persistence format
 
-```bash
-VECTOR_STORE_PATH=/data/yelp_vector_store.json
+Vector stores are saved as **JSONL** (one JSON object per line):
+
+```
+{"item_id": "biz_01", "vector": [0.12, -0.34, ...], "metadata": {"stars": 4.0}}
+{"item_id": "biz_02", "vector": [...], "metadata": {...}}
 ```
 
-Startup log: `INFO Loaded vector store from ... (52000 items)`
+`load_vector_store` auto-detects legacy single-array JSON (first char `[`) for
+backward compatibility. JSONL is the default for all new stores.
+
+### Startup loading
+
+```
+VECTOR_STORE_PATH=/data/yelp_vector_store.jsonl
+```
+
+Startup log: `INFO Loaded vector store from ... (50000 items)`
 
 If the file is absent or the variable is empty the API starts with an empty store;
 profile-based recommendations still work.
+
+### Current vector store
+
+A **50,000-item Yelp vector store** has been built from the Yelp Academic Dataset
+(2.85M reviews) using `--limit 50000`. The file is 408MB JSONL and is loaded at
+startup when `VECTOR_STORE_PATH` points to it. End-to-end tested: `/task-b/recommend`
+returns real Yelp recommendations with cosine similarity scores in 0.55–0.76 range.
 
 ---
 
@@ -368,6 +395,8 @@ For detailed endpoint contracts, architecture decisions, and module-level design
 
 - Frontend scaffold (React + TypeScript) — separate developer
 - Solution paper write-up and reproducibility artifacts
+- Expand Yelp vector store to 200k+ records for denser retrieval coverage
+- Ingest Amazon and Goodreads datasets; enable cross-domain `MultiVectorStoreService`
 - BERTScore integration for richer review quality measurement (requires `bert-score` package)
 - Expanded pidgin/Nigerian English dictionary (Yoruba, Igbo, Hausa term sets)
 - Adaptive cold-start question selection based on partial answer uncertainty

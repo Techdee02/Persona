@@ -471,3 +471,93 @@ Notes:
   test_task_a_reasoning.py, test_profile_update_endpoint.py, test_task_b_agent_endpoint.py
 - All modules covered: cold_start, review_generator, metrics, loaders, vector_store_service,
   deliberative_scoring, agent, task_a, task_b, session, multi_vector_store, llm_prompts
+
+---
+
+## Phase 5 Checklist (Operational Readiness)
+
+- [x] Task 1: Streaming JSONL persistence (OOM fix for large stores)
+- [x] Task 2: Streaming batched ingestion + --limit / --batch-size CLI flags
+- [x] Task 3: python-dotenv integration (.env auto-loaded at startup)
+- [x] Task 4: Logging formatter fix (trace_id filter on handlers, not root logger)
+- [x] Task 5: .gitignore — exclude large data/vector store files
+- [x] Task 6: 50k Yelp vector store built and end-to-end validated
+
+## Phase 5 Task Logs
+
+### Phase 5 Task 1: Streaming JSONL persistence
+
+Status: Done
+
+Notes:
+- root cause: save_vector_store previously built a single giant JSON string in memory
+  (json.dumps of 50k × 384-dim vectors = ~800MB string), causing silent OOM; output
+  file was 0 bytes
+- Fix: stream-write one JSONL line per item; memory use is O(1) vs store size
+- Fix: load_vector_store stream-reads line by line; auto-detects legacy JSON array
+  format (first char "[") for backward compatibility
+- Commit: bad1ee3
+
+### Phase 5 Task 2: Streaming batched ingestion + CLI flags
+
+Status: Done
+
+Notes:
+- ingest_embeddings.py previously loaded the entire JSONL into memory before embedding
+- Fix: added _stream_batches() generator; read/embed/add in configurable batch_size
+  chunks (default 512); memory bounded regardless of dataset size
+- Added limit parameter to cap total records ingested (useful for dev/demo stores)
+- CLI: --limit and --batch-size flags wired end-to-end through cli.py → ingest_datasets.py → ingest_embeddings.py
+- Commit: 2a3ec72
+
+### Phase 5 Task 3: python-dotenv integration
+
+Status: Done
+
+Notes:
+- config.py used os.getenv() which reads from the system environment, not .env on disk
+- Without a manual `export` step, VECTOR_STORE_PATH and all other vars were empty at
+  startup; vector store silently loaded 0 items
+- Fix: config.py imports python-dotenv at module level and calls load_dotenv() before
+  app_config_from_env(); override=False means real env vars take precedence over .env
+- Added python-dotenv to requirements.txt
+- Commit: 2092f43
+
+### Phase 5 Task 4: Logging formatter fix
+
+Status: Done
+
+Notes:
+- configure_logging() used basicConfig() which sets format on the handler it creates,
+  then addFilter() added TraceIdFilter to the root logger — but logging checks filters
+  on the handler, not the logger, for format field resolution
+- Result: %(trace_id)s raised ValueError("Formatting field not found") on every log
+  line when running outside uvicorn's pre-configured logging
+- Fix: configure_logging() now explicitly creates a StreamHandler, sets formatter and
+  filter on the handler, then adds the handler to the root logger
+- Commit: 584c56a
+
+### Phase 5 Task 5: .gitignore extension
+
+Status: Done
+
+Notes:
+- data/*.json, data/*.jsonl, data/*.log, data/*.pdf, *.tar, *.gz, *.docx excluded
+- Prevents accidentally staging 408MB vector store or 2.1GB Yelp review files
+- Unstaged previously-staged data files from index
+- Commit: 584c56a
+
+### Phase 5 Task 6: 50k Yelp vector store — build and end-to-end validation
+
+Status: Done
+
+Notes:
+- Built from Yelp Academic Dataset (2.85M reviews, 2.1GB JSONL) using --limit 50000
+- Ingestion: ~20 minutes, sentence-transformers all-MiniLM-L6-v2, batch_size=512
+- Output: data/yelp_vector_store.json, 408MB JSONL, 50,000 items
+- Startup: "INFO Loaded vector store from ... (50000 items)" confirmed
+- End-to-end test: POST /task-b/recommend with Nigerian food query returns 5 Yelp items,
+  cosine scores 0.57–0.76
+- POST /task-a/simulate: rating + reasoning trace + template review all correct
+- GET /cold-start/questions: all 4 questions returned
+- All 8 endpoints tested and responding correctly

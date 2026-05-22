@@ -1,8 +1,9 @@
 # Persona — Backend & AI/ML Architecture
 
 Owner: Backend AI/ML  
-Last updated: 2026-05-21  
-Test suite: 114 tests, all passing
+Last updated: 2026-05-22  
+Test suite: 114 tests, all passing  
+Vector store: 50,000 Yelp items (408MB JSONL), end-to-end validated
 
 ---
 
@@ -970,7 +971,7 @@ class VectorStoreService:
 `store.query()`, and returns a list of `{item_id, score, metadata}` dicts sorted by
 score descending.
 
-### 9.4 JSON Persistence
+### 9.4 JSONL Persistence
 
 **File:** `backend/vector_store_persist.py`
 
@@ -979,17 +980,31 @@ save_vector_store(store: InMemoryVectorStore, path: str) -> None
 load_vector_store(path: str) -> InMemoryVectorStore
 ```
 
-Serialisation format:
-```json
-[
-  {"item_id": "biz_01", "vector": [0.12, -0.34, ...], "metadata": {"name": "..."}},
-  ...
-]
+**Serialisation format — JSONL (one object per line):**
+
+```
+{"item_id": "biz_01", "vector": [0.12, -0.34, ...], "metadata": {"stars": 4.0}}
+{"item_id": "biz_02", "vector": [...], "metadata": {...}}
 ```
 
-`save_vector_store` writes via `Path.write_text()` (atomic on most POSIX systems).
-`load_vector_store` reads, parses, and calls `store.add()` for each entry, restoring
-full `np.ndarray` vectors.
+**Why JSONL instead of a single JSON array?** The previous implementation called
+`json.dumps()` on the entire store payload. For a 50k-item store (384-dim vectors per
+item) this produced an ~800MB Python string before writing anything — causing a silent
+OOM. The output file was 0 bytes. Streaming one line at a time keeps memory use O(1)
+relative to store size.
+
+**`save_vector_store`:** opens the file in write mode and streams one `json.dumps()`
+call per item, each followed by a newline. No in-memory aggregation.
+
+**`load_vector_store`:** reads the first character to detect format:
+- First char is `[` → legacy single-array JSON. Reads the whole file (small files only;
+  acceptable for backward compatibility with tiny test stores).
+- Otherwise → JSONL. Reconstructs the first line from the already-consumed character
+  and iterates line-by-line via `_add_line()`, calling `store.add()` for each parsed
+  object.
+
+Memory use during load is bounded to one parsed record at a time plus the accumulated
+store (the store's vector arrays themselves must live in memory for querying).
 
 ### 9.5 Dataset Ingestion Pipeline
 
@@ -1002,22 +1017,37 @@ ingest_dataset(
     id_field:        str,
     metadata_fields: List[str],
     model_name:      str = "all-MiniLM-L6-v2",
+    batch_size:      int = 512,
+    limit:           Optional[int] = None,
 ) -> InMemoryVectorStore
 ```
 
-Steps:
-1. Load all JSONL records from `dataset_path`.
-2. Extract `text_field` from each record for embedding.
-3. Embed in batch with `embed_texts()`.
-4. For each record/vector pair, add to the store with `id_field` as item_id and
-   `metadata_fields` as the metadata dict.
+**Streaming batch algorithm** (memory-bounded regardless of dataset size):
 
-Dataset-specific helpers in `ingest_datasets.py` pre-fill the field names:
+1. `_stream_batches(path, batch_size, limit)` yields successive `List[Dict]` batches
+   by reading the JSONL file line by line. Stops after `limit` records if set.
+2. For each batch: extract `text_field` values and call `embed_texts()` (one GPU/CPU
+   pass per batch).
+3. For each (record, vector) pair: call `store.add()` with `id_field` as item_id and
+   `metadata_fields` as the metadata dict. Records with an empty id_field are skipped.
+4. Progress logged every batch: `INFO Ingested N records so far …`
+
+**Why batched streaming?** The original implementation called `_load_jsonl()` which read
+all 2.85M Yelp records into a Python list before embedding — exhausting available memory
+for large datasets. Batching caps memory to roughly `batch_size × avg_record_size`.
+
+Dataset-specific helpers in `ingest_datasets.py` pre-fill the field names and forward
+`batch_size` and `limit`:
 
 ```python
-ingest_yelp_reviews(path)      # text="text",        id="business_id"
-ingest_amazon_reviews(path)    # text="reviewText",   id="asin"
-ingest_goodreads_reviews(path) # text="review_text",  id="book_id"
+ingest_yelp_reviews(path, batch_size=512, limit=None)
+  # text="text",        id="business_id",  metadata=["name","categories","stars"]
+
+ingest_amazon_reviews(path, batch_size=512, limit=None)
+  # text="reviewText",  id="asin",          metadata=["summary","overall"]
+
+ingest_goodreads_reviews(path, batch_size=512, limit=None)
+  # text="review_text", id="book_id",        metadata=["rating"]
 ```
 
 ### 9.6 CLI
@@ -1026,13 +1056,19 @@ ingest_goodreads_reviews(path) # text="review_text",  id="book_id"
 
 ```bash
 python -m backend.cli \
-  --dataset  yelp|amazon|goodreads \
-  --input    /path/to/dataset.jsonl \
-  --output   /path/to/vector_store.json
+  --dataset    yelp|amazon|goodreads \
+  --input      /path/to/dataset.jsonl \
+  --output     /path/to/vector_store.jsonl \
+  --limit      50000   \   # optional: cap records ingested (dev/demo stores)
+  --batch-size 512          # optional: embedding batch size (default 512)
 ```
 
 Calls the appropriate `ingest_*` helper then `save_vector_store()`. Suitable for a
-one-time pre-processing step or a cron job when the dataset is refreshed.
+one-time pre-processing step or a scheduled job when the dataset is refreshed.
+
+`--limit` is the primary knob for building a dev-scale store from a large dataset
+without a full overnight run. The Yelp 50k store was built with `--limit 50000` in
+approximately 20 minutes on CPU.
 
 ### 9.7 Cross-Domain Retrieval (MultiVectorStoreService)
 
@@ -1518,6 +1554,13 @@ enabling full request correlation in log aggregation systems.
 
 All settings are read from environment variables at import time via `app_config_from_env()`.
 
+**Automatic `.env` loading**: `config.py` imports `python-dotenv` at module level and
+calls `load_dotenv(override=False)` before any `os.getenv()` calls. This means placing
+variables in a `.env` file at the repo root is sufficient — no manual `export` step is
+required. If a variable is already set in the process environment it takes precedence
+(`override=False`). If `python-dotenv` is not installed the import is silently skipped
+and the app continues using the process environment only.
+
 ```python
 @dataclass(frozen=True)
 class AppConfig:
@@ -1613,15 +1656,39 @@ Exponential backoff doubles the delay per retry. Non-retryable `APIStatusError` 
 
 Log format:
 ```
-2026-05-21 10:15:43,201 INFO trace_id=3f8a1b2c-... request_completed
+2026-05-22 10:15:43,201 INFO trace_id=3f8a1b2c-... request_completed
 ```
 
 `TraceIdFilter` adds `trace_id="-"` to any log record that does not already have a
-`trace_id` attribute, ensuring the format string always resolves (background threads,
-startup logs, test output).
+`trace_id` attribute, ensuring the `%(trace_id)s` format field always resolves
+(background threads, startup logs, test output, any code path that does not go through
+the HTTP middleware).
 
-`configure_logging()` is called once at `app.py` import time. It uses `basicConfig`
-with `level=INFO` and attaches the filter to the root logger.
+`configure_logging()` is called once at `app.py` import time:
+
+```python
+def configure_logging() -> None:
+    _filter = TraceIdFilter()
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+
+    if not root.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(Formatter("... %(trace_id)s ..."))
+        handler.addFilter(_filter)
+        root.addHandler(handler)
+    else:
+        for handler in root.handlers:
+            handler.addFilter(_filter)
+            handler.setFormatter(Formatter("... %(trace_id)s ..."))
+    root.addFilter(_filter)
+```
+
+**Why the filter is attached to handlers (not just the root logger):** Python's logging
+infrastructure resolves format fields at `handler.format(record)` time. A filter added
+only to the logger runs before handler dispatch but the format field check happens in
+the handler's formatter. Without the handler-level filter the `%(trace_id)s` field
+raises `ValueError` for log records that originate outside the HTTP request lifecycle.
 
 ### 12.6 Docker and Compose
 
@@ -1701,6 +1768,24 @@ is acceptable since the cache is advisory (not authoritative).
 `trajectory.py` needs the same timestamp parsing logic. Duplicating it would create a
 maintenance burden. Making it public and importing it is preferable to importing a
 private function (which signals it is not part of the module's contract).
+
+### Why JSONL for vector store persistence instead of a single JSON array?
+
+The original implementation called `json.dumps()` on the full store payload (50k items ×
+384-dim vector = ~800MB) in a single shot. Python string concatenation of that scale
+causes a silent OOM: the file is opened and truncated to 0 bytes before the write, so
+a failed write leaves an empty file with no error. Streaming one JSON object per line
+makes memory usage independent of store size. `load_vector_store` auto-detects the
+legacy format by checking whether the first character is `[`, so existing small test
+stores continue to work without migration.
+
+### Why stream-batch ingestion instead of load-all-then-embed?
+
+The Yelp Academic Dataset is 2.85M reviews (~2.1GB JSONL). Loading it into a Python list
+before embedding would require multi-GB RAM before the first vector is produced. Batching
+reads and embedding in `batch_size` chunks (default 512) caps peak memory to roughly
+one batch plus the growing store, making it possible to ingest any dataset size on
+commodity hardware.
 
 ---
 
