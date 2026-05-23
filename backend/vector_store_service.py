@@ -46,7 +46,18 @@ class VectorStoreService:
 
     def query(self, query_text: str, top_k: int = 10) -> List[Dict[str, object]]:
         query_vector = embed_texts(self.embedding_model, [query_text])[0]
-        results = self.store.query(query_vector, top_k=top_k)
+        # Over-fetch so deduplication leaves at least top_k unique businesses
+        raw_results = self.store.query(query_vector, top_k=top_k * 5)
+
+        seen: set = set()
+        results = []
+        for result in raw_results:
+            if result.item_id in seen:
+                continue
+            seen.add(result.item_id)
+            results.append(result)
+            if len(results) >= top_k:
+                break
 
         return [
             {
