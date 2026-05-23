@@ -2,6 +2,17 @@ import { useEffect, useRef } from 'react';
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+const PIDGIN_TERMS = [
+  'dey', 'na', 'omo', 'abeg', 'wahala', 'sha', 'sef', 'joor', 'nau', 'sabi',
+  'wetin', 'dem', 'kai', 'ehn', 'mehn', 'oya', 'wey', 'una', 'chop', 'waka',
+  'gist', 'taya', 'badt', 'padi', 'pepper', 'e don', 'no be', 'make e', 'do am',
+];
+
+function detectPidginTerms(text) {
+  if (!text) return [];
+  return PIDGIN_TERMS.filter(term => new RegExp(`\\b${term}\\b`, 'i').test(text));
+}
+
 function MetricBar({ label, value, delay }) {
   const barRef = useRef(null);
   const color = value >= 80 ? '#22C55E' : value >= 60 ? '#F59E0B' : '#EF4444';
@@ -40,7 +51,14 @@ export default function FidelityDashboard({ profile, output }) {
   const predicted = output.predicted_rating ?? 0;
   const reviewText = output.review_text ?? '';
 
-  const toneMatch = Math.min(100, Math.round((stylometry?.vocab_richness ?? 0) * 100));
+  // Tone Match: compare generated review's vocab richness to user's historical baseline
+  const genWords = reviewText.toLowerCase().match(/\b\w+\b/g) ?? [];
+  const genVocabRichness = genWords.length > 0 ? new Set(genWords).size / genWords.length : 0;
+  const profileVocabRichness = stylometry?.vocab_richness ?? 0;
+  const toneMatch = profileVocabRichness > 0
+    ? Math.max(0, Math.min(100, Math.round(100 - (Math.abs(genVocabRichness - profileVocabRichness) / profileVocabRichness) * 100)))
+    : 50;
+
   const std = rating_stats?.std_dev ?? 1;
   const mean = rating_stats?.mean ?? 3;
   const ratingConsistency = Math.max(0, Math.round(100 - (Math.abs(predicted - mean) / (std || 1)) * 20));
@@ -52,6 +70,8 @@ export default function FidelityDashboard({ profile, output }) {
 
   const overall = Math.round((toneMatch + ratingConsistency + culturalAccuracy + lengthFidelity) / 4);
   const overallColor = overall >= 80 ? '#22C55E' : overall >= 60 ? '#F59E0B' : '#EF4444';
+
+  const detectedTerms = detectPidginTerms(reviewText);
 
   return (
     <div className="bg-[#13131A] border border-[#1E1E2E] rounded-xl p-5">
@@ -72,7 +92,24 @@ export default function FidelityDashboard({ profile, output }) {
         <MetricBar key={m.label} label={m.label} value={m.value} delay={i * 100} />
       ))}
 
-      <div className="text-[11px] text-[#64748B] mt-2 italic">
+      {detectedTerms.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-[#1E1E2E]">
+          <div className="text-[10px] text-[#64748B] uppercase tracking-widest mb-2">Detected Pidgin Terms</div>
+          <div className="flex flex-wrap gap-1.5">
+            {detectedTerms.map(term => (
+              <span
+                key={term}
+                className="px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', color: '#818CF8' }}
+              >
+                {term}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="text-[11px] text-[#64748B] mt-3 italic">
         Computed against user's psychological profile
       </div>
     </div>
