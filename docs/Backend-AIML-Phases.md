@@ -97,7 +97,7 @@ Deliverables (all delivered):
 - python-dotenv integration — .env auto-loaded at startup ✓
 - Logging formatter fix — trace_id filter correctly attached to handlers ✓
 - .gitignore extended — large data/vector store files excluded ✓
-- 50k Yelp vector store built and end-to-end validated ✓
+- 50k Yelp vector store built and end-to-end validated ✓ (expanded to 200k in Phase 6)
 - Dockerfile COPY paths corrected; backend/services and backend/tests __init__.py added ✓
 - Record parser accepts both `review_text` and `text` field names ✓
 - Agent plan guaranteed to run all 4 steps even when LLM returns fewer ✓
@@ -105,13 +105,32 @@ Deliverables (all delivered):
   and Task B 4-step agent pipeline both confirmed working ✓
 
 Acceptance criteria:
-- API loads 50k-item Yelp vector store at startup ✓
+- API loads Yelp vector store at startup ✓
 - /task-b/recommend returns real Yelp recommendations with scored results ✓
 - /task-a/simulate use_llm=true: Nigerian English detected, pidgin review generated ✓
 - /task-b/agent use_llm=true: all 4 steps execute, cultural_register axis extracted ✓
 - All 8 endpoints tested and responding correctly ✓
 - 114 tests passing after all fixes ✓
 - Docker deployment artifacts correct and all source files tracked in git ✓
+
+## Phase 6: Dense Vector Store ✓ Complete
+
+Goal: expand the Yelp vector store to 200k records for denser retrieval coverage and add
+a resilient multi-checkpoint ingestion workflow.
+
+Deliverables (all delivered):
+- Multi-checkpoint ingestion script (ingest_checkpoints.py) — single-pass, saves at 50k/100k/150k/200k ✓
+- 200k Yelp vector store built in 89 minutes (37–38 rec/s, batch_size=512) ✓
+- Live progress monitoring via log file (tail -f /tmp/persona_checkpoints/ingest.log) ✓
+- Graceful Ctrl+C handling — partial store saved before exit ✓
+- .env wired to 200k store; API startup confirmed (load time ~30s) ✓
+- End-to-end validation: /task-b/recommend returns real Yelp items, cosine 0.60–0.69 ✓
+- All docs updated to reflect 200k store ✓
+
+Acceptance criteria:
+- API loads 200k-item Yelp vector store at startup ✓
+- /task-b/recommend returns real Yelp recommendations with scored results ✓
+- Checkpoint files at 50k, 100k, 150k, 200k all valid and independently loadable ✓
 
 ## Phase Risks and Mitigations
 
@@ -121,9 +140,10 @@ Acceptance criteria:
 - Multi-worker cache consistency: current in-process cache; Redis upgrade path documented
 - Vector store disk space: JSONL streaming write/read; stores excluded from git via .gitignore
 - LLM partial tool-call responses: agent plan fill-in ensures all 4 steps always execute
+- Codespace restart wipes /tmp: multi-checkpoint script saves to /workspaces after each run
 
 ## Open Questions
 
 - BERTScore: include in final evaluation report? (requires `bert-score` install)
 - Cross-domain retrieval domain weights: should Yelp or Amazon score higher for restaurant queries?
-- Expand Yelp store to 200k+ records for denser retrieval coverage (overnight job)?
+- Upload 200k store to DigitalOcean Spaces for container auto-download on first boot?

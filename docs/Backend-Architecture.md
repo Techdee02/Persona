@@ -1,9 +1,9 @@
 # Persona — Backend & AI/ML Architecture
 
 Owner: Backend AI/ML  
-Last updated: 2026-05-22  
+Last updated: 2026-05-23  
 Test suite: 114 tests, all passing  
-Vector store: 50,000 Yelp items (408MB JSONL), end-to-end validated
+Vector store: 200,192 Yelp items (1.6 GB JSONL), end-to-end validated
 
 ---
 
@@ -1076,9 +1076,31 @@ python -m backend.cli \
 Calls the appropriate `ingest_*` helper then `save_vector_store()`. Suitable for a
 one-time pre-processing step or a scheduled job when the dataset is refreshed.
 
-`--limit` is the primary knob for building a dev-scale store from a large dataset
-without a full overnight run. The Yelp 50k store was built with `--limit 50000` in
-approximately 20 minutes on CPU.
+**Multi-checkpoint ingestion** (`ingest_checkpoints.py` at repo root):
+
+For large production runs, use the multi-checkpoint script instead of the CLI. It
+performs a **single streaming pass** through the dataset and saves independent JSONL
+snapshots at 50k, 100k, 150k, and 200k records — so a crash or restart never loses
+all progress.
+
+```bash
+python ingest_checkpoints.py
+# Checkpoint stores saved to /tmp/persona_checkpoints/
+# Monitor live: tail -f /tmp/persona_checkpoints/ingest.log
+```
+
+Progress output (every 10k records to log file, every batch to terminal):
+```
+[13:05:12]  50,176 / 200,000 records    37/s  ETA 01:07  /tmp free 110.0 GB
+  ┌─ CHECKPOINT 50k  [13:05:12]  ─────────────────────────────────────────
+  │  File     : /tmp/persona_checkpoints/yelp_50k.jsonl
+  │  Items    : 50,176  |  Size: 409 MB  |  Save time: 13.5s
+  └────────────────────────────────────────────────────────────────────────
+```
+
+The 200k store was built this way in **89 minutes** at 37–38 records/s on CPU.
+The `/tmp` volume (typically 110+ GB) is used for intermediate files; copy the
+final store to `backend/data/` before the next codespace restart.
 
 ### 9.7 Cross-Domain Retrieval (MultiVectorStoreService)
 
@@ -1803,20 +1825,31 @@ private function (which signals it is not part of the module's contract).
 ### Why JSONL for vector store persistence instead of a single JSON array?
 
 The original implementation called `json.dumps()` on the full store payload (50k items ×
-384-dim vector = ~800MB) in a single shot. Python string concatenation of that scale
+384-dim vectors = ~800MB) in a single shot. Python string concatenation of that scale
 causes a silent OOM: the file is opened and truncated to 0 bytes before the write, so
 a failed write leaves an empty file with no error. Streaming one JSON object per line
-makes memory usage independent of store size. `load_vector_store` auto-detects the
-legacy format by checking whether the first character is `[`, so existing small test
-stores continue to work without migration.
+makes memory usage independent of store size. For the current 200k store (1.6 GB),
+this is essential. `load_vector_store` auto-detects the legacy format by checking
+whether the first character is `[`, so existing small test stores continue to work
+without migration.
 
 ### Why stream-batch ingestion instead of load-all-then-embed?
 
-The Yelp Academic Dataset is 2.85M reviews (~2.1GB JSONL). Loading it into a Python list
+The Yelp Academic Dataset is 6.99M reviews (~5.3 GB JSONL). Loading it into a Python list
 before embedding would require multi-GB RAM before the first vector is produced. Batching
 reads and embedding in `batch_size` chunks (default 512) caps peak memory to roughly
 one batch plus the growing store, making it possible to ingest any dataset size on
-commodity hardware.
+commodity hardware. The 200k-item store uses ~1.2 GB RAM at runtime (200k × 384-dim
+float32 vectors plus Python overhead).
+
+### Why multi-checkpoint ingestion instead of a single --limit run?
+
+A single `--limit 200000` CLI run works but produces one file at the end. If the run is
+interrupted (codespace restart, OOM, power loss), all 89 minutes of work are lost.
+`ingest_checkpoints.py` saves a complete, usable JSONL snapshot at each 50k boundary
+during the same streaming pass. Each checkpoint file is an independent, fully valid
+vector store that can be used immediately — giving four recovery points at zero extra
+embedding cost.
 
 ### Why accept both `review_text` and `text` in record parsing?
 
