@@ -146,7 +146,6 @@ docs/
   Backend-AIML-Phases.md   Phase breakdown and acceptance criteria
   Backend-Architecture.md  Comprehensive system design and module reference
   PROGRESS.md              Task-by-task implementation log
-  DEPLOYMENT.md            Droplet provisioning, DuckDNS, SSL, and operational commands
 ```
 
 ---
@@ -434,20 +433,6 @@ a user with detected pidgin patterns:
 
 ---
 
-## Production Deployment
-
-The backend is live at **https://personabackend.duckdns.org** — a DigitalOcean Droplet
-(Ubuntu 22.04, 2 GB RAM, lon1) running Docker Compose with Nginx + Let's Encrypt SSL.
-The 200k Yelp vector store is stored in DigitalOcean Spaces and auto-downloaded to the
-container's persistent volume on first boot.
-
-Frontend: **https://persona-eight-flax.vercel.app**
-
-For full setup instructions, operational commands, SSL renewal, and troubleshooting:
-→ [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
-
----
-
 ## Next Steps
 
 - Solution paper write-up and reproducibility artifacts
@@ -456,7 +441,7 @@ For full setup instructions, operational commands, SSL renewal, and troubleshoot
 - Expanded pidgin/Nigerian English dictionary (Yoruba, Igbo, Hausa term sets)
 - Adaptive cold-start question selection based on partial answer uncertainty
 - Production vector database (ChromaDB / FAISS) behind `VectorStoreService` facade
-- SSL auto-renewal cron job on droplet
+- Upload vector store to DigitalOcean Spaces for auto-download on container boot
 
 ---
 
