@@ -481,7 +481,7 @@ Notes:
 - [x] Task 3: python-dotenv integration (.env auto-loaded at startup)
 - [x] Task 4: Logging formatter fix (trace_id filter on handlers, not root logger)
 - [x] Task 5: .gitignore — exclude large data/vector store files
-- [x] Task 6: 50k Yelp vector store built and end-to-end validated
+- [x] Task 6: 50k Yelp vector store built and end-to-end validated (superseded by Phase 6)
 - [x] Task 7: Dockerfile COPY paths fixed + missing __init__.py files added
 - [x] Task 8: Record parser accepts both `review_text` and `text` fields
 - [x] Task 9: Agent plan always runs all 4 steps even when LLM returns fewer
@@ -553,7 +553,7 @@ Notes:
 
 ### Phase 5 Task 6: 50k Yelp vector store — build and end-to-end validation
 
-Status: Done
+Status: Done (superseded by Phase 6 Task 2 — 200k store)
 
 Notes:
 - Built from Yelp Academic Dataset (2.85M reviews, 2.1GB JSONL) using --limit 50000
@@ -625,3 +625,56 @@ Notes:
   - LLM planning + deterministic argument filling confirmed working
 - POST /task-b/recommend (no LLM): 5 Yelp items, cosine 0.57–0.76
 - 114 tests still passing after all fixes
+
+---
+
+## Phase 6 Checklist (200k Vector Store + Multi-Checkpoint Ingestion)
+
+- [x] Task 1: Multi-checkpoint ingestion script (ingest_checkpoints.py)
+- [x] Task 2: 200k Yelp vector store built and end-to-end validated
+- [x] Task 3: .env wired to 200k store; API startup confirmed
+
+## Phase 6 Task Logs
+
+### Phase 6 Task 1: Multi-checkpoint ingestion script
+
+Status: Done
+
+Notes:
+- Created ingest_checkpoints.py at repo root — single-pass ingestion with checkpoint
+  saves at 50k, 100k, 150k, 200k records in one streaming run (no re-reading dataset)
+- Live progress: carriage-return progress bar every batch (512 records), timestamped
+  milestone lines to log file every 10k records, disk-free reported at each checkpoint
+- Outputs to /tmp/persona_checkpoints/ (117 GB free on the /tmp volume)
+- Ctrl+C handler: saves partial store before exit so no progress is lost
+- Log file at /tmp/persona_checkpoints/ingest.log for clean tail -f monitoring
+- The /tmp volume is wiped on codespace restart; checkpoint files should be copied to
+  /workspaces/Persona/backend/data/ immediately after each successful checkpoint
+
+### Phase 6 Task 2: 200k Yelp vector store — build and end-to-end validation
+
+Status: Done
+
+Notes:
+- Built from Yelp Academic Dataset (6.99M reviews, 5.3 GB JSONL) in a single 89-minute
+  pass using ingest_checkpoints.py, sentence-transformers all-MiniLM-L6-v2, batch_size=512
+- Ingestion rate: ~37–38 records/s sustained on CPU
+- Checkpoint files produced:
+    yelp_50k.jsonl   —  50,176 items,  409 MB  (saved at ~22 min)
+    yelp_100k.jsonl  — 100,352 items,  818 MB  (saved at ~44 min)
+    yelp_150k.jsonl  — 150,016 items,  1.2 GB  (saved at ~66 min)
+    yelp_200k.jsonl  — 200,192 items,  1.6 GB  (saved at ~89 min)
+- 200k store copied to backend/data/yelp_vector_store_200k.jsonl
+- Startup confirmed: "INFO Loaded vector store from ... (200192 items)" in ~30s
+- End-to-end test: POST /task-b/recommend with Nigerian food query returns 5 Yelp items
+  with cosine scores in 0.60–0.69 range; profile axes (cultural_register, rating_bias,
+  food, service) correctly extracted and applied to deliberative scoring
+
+### Phase 6 Task 3: .env wired to 200k store
+
+Status: Done
+
+Notes:
+- Created .env from .env.example
+- Set VECTOR_STORE_PATH=/workspaces/Persona/backend/data/yelp_vector_store_200k.jsonl
+- API loads 200k store at startup without any other config changes required

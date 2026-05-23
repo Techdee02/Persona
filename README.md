@@ -83,7 +83,7 @@ Profile Engine                                               Cold-Start Engine
 | Backend API | FastAPI (Python 3.12) |
 | LLM | OpenAI-compatible API (gpt-4o by default, disabled by default) |
 | Embeddings | sentence-transformers `all-MiniLM-L6-v2` |
-| Vector Store | Custom in-memory cosine-similarity store with JSON persistence |
+| Vector Store | Custom in-memory cosine-similarity store with JSONL persistence |
 | Caching | TTL + LRU in-memory cache |
 | Containerisation | Docker + Docker Compose |
 
@@ -112,7 +112,8 @@ backend/
   embeddings.py            sentence-transformers encode wrapper
   ingest_embeddings.py     JSONL → embed → InMemoryVectorStore
   ingest_datasets.py       Dataset-specific ingestion configs (Yelp/Amazon/Goodreads)
-  cli.py                   Dataset ingestion CLI entry point
+  cli.py                   Dataset ingestion CLI entry point (single limit)
+ingest_checkpoints.py      Multi-checkpoint ingestion: saves at 50k/100k/150k/200k with live progress
   agent_orchestrator.py    Tool-call plan executor with $ref argument resolution
   agent_tools.py           ToolRegistry, ToolCall, ToolResult types
   agent_tool_defs.py       Registered tools: build_profile, extract_axes,
@@ -244,6 +245,14 @@ python -m backend.cli \
   --batch-size 512         # optional: embedding batch size (default 512)
 ```
 
+For multi-checkpoint ingestion (saves at 50k / 100k / 150k / 200k in one pass):
+
+```bash
+python ingest_checkpoints.py
+# Checkpoints saved to /tmp/persona_checkpoints/
+# Monitor: tail -f /tmp/persona_checkpoints/ingest.log
+```
+
 **Field mapping**
 
 | Dataset | Text embedded | Item ID | Stored metadata |
@@ -270,17 +279,29 @@ backward compatibility. JSONL is the default for all new stores.
 VECTOR_STORE_PATH=/data/yelp_vector_store.jsonl
 ```
 
-Startup log: `INFO Loaded vector store from ... (50000 items)`
+Startup log: `INFO Loaded vector store from ... (200192 items)`
 
 If the file is absent or the variable is empty the API starts with an empty store;
 profile-based recommendations still work.
 
 ### Current vector store
 
-A **50,000-item Yelp vector store** has been built from the Yelp Academic Dataset
-(2.85M reviews) using `--limit 50000`. The file is 408MB JSONL and is loaded at
-startup when `VECTOR_STORE_PATH` points to it. End-to-end tested: `/task-b/recommend`
-returns real Yelp recommendations with cosine similarity scores in 0.55–0.76 range.
+A **200,000-item Yelp vector store** has been built from the Yelp Academic Dataset
+(6.99M reviews, 5.3 GB) using `ingest_checkpoints.py` in a single 89-minute pass.
+The file is 1.6 GB JSONL (`backend/data/yelp_vector_store_200k.jsonl`) and is loaded
+at startup when `VECTOR_STORE_PATH` points to it (load time ~30s). End-to-end tested:
+`/task-b/recommend` returns real Yelp recommendations with cosine similarity scores
+in the 0.60–0.69 range.
+
+Checkpoint files (all saved during the same run, stored in `/tmp/persona_checkpoints/`
+and copied from there):
+
+| File | Items | Size | Approx. build time |
+|---|---|---|---|
+| `yelp_50k.jsonl` | 50,176 | 409 MB | 22 min |
+| `yelp_100k.jsonl` | 100,352 | 818 MB | 44 min |
+| `yelp_150k.jsonl` | 150,016 | 1.2 GB | 66 min |
+| `yelp_200k.jsonl` | 200,192 | 1.6 GB | 89 min |
 
 ### API record format
 
@@ -414,14 +435,13 @@ a user with detected pidgin patterns:
 
 ## Next Steps
 
-- Frontend scaffold (React + TypeScript) — separate developer
 - Solution paper write-up and reproducibility artifacts
-- Expand Yelp vector store to 200k+ records for denser retrieval coverage
 - Ingest Amazon and Goodreads datasets; enable cross-domain `MultiVectorStoreService`
 - BERTScore integration for richer review quality measurement (requires `bert-score` package)
 - Expanded pidgin/Nigerian English dictionary (Yoruba, Igbo, Hausa term sets)
 - Adaptive cold-start question selection based on partial answer uncertainty
 - Production vector database (ChromaDB / FAISS) behind `VectorStoreService` facade
+- Upload vector store to DigitalOcean Spaces for auto-download on container boot
 
 ---
 
