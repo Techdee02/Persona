@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ProfilePanel from '../components/profile/ProfilePanel';
 import RecommendationCard from '../components/task-b/RecommendationCard';
 import AgentTimeline from '../components/task-b/AgentTimeline';
 import ColdStartChat from '../components/task-b/ColdStartChat';
+import ConversationLog from '../components/task-b/ConversationLog';
 import { buildProfile, recommend, runAgent } from '../lib/api';
 import { DEMO_USERS, DEMO_AGENT_PAYLOAD } from '../lib/demo-users';
 import { useToast } from '../components/layout/Toast';
@@ -42,8 +44,13 @@ function Toggle({ on, onToggle, label }) {
   );
 }
 
+function uuid() {
+  return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+}
+
 export default function TaskB() {
   const { showToast } = useToast();
+  const [searchParams] = useSearchParams();
   const [entryMode, setEntryMode] = useState('history');
   const [records, setRecords] = useState([]);
   const [selectedDemo, setSelectedDemo] = useState('');
@@ -60,7 +67,57 @@ export default function TaskB() {
   const [agentLoading, setAgentLoading] = useState(false);
   const [constraintInput, setConstraintInput] = useState('');
   const [constraints, setConstraints] = useState([]);
+  // Feature 5: Conversation log
+  const [turns, setTurns] = useState([]);
   const chipTimer = useRef(null);
+  const autoBuilt = useRef(false);
+
+  // Feature 6: primaryDomain from top value_keyword
+  const primaryDomain = profile
+    ? (Object.entries(profile.value_keywords ?? {}).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null)
+    : null;
+
+  const handleBuildProfile = async (uid, recs) => {
+    setProfileLoading(true);
+    try {
+      const p = await buildProfile(uid, recs);
+      setProfile(p);
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  // Feature 8: Shareable URL
+  useEffect(() => {
+    const demoParam = searchParams.get('demo');
+    if (demoParam && DEMO_USERS[demoParam] && !autoBuilt.current) {
+      autoBuilt.current = true;
+      const demoUser = DEMO_USERS[demoParam];
+      setRecords(demoUser.records);
+      setSelectedDemo(demoParam);
+      handleBuildProfile(demoParam, demoUser.records);
+    }
+  }, []);
+
+  // Feature 9: Reset listener
+  useEffect(() => {
+    const onReset = () => {
+      setRecords([]);
+      setSelectedDemo('');
+      setProfile(null);
+      setRecommendations([]);
+      setAxes([]);
+      setSessionId(null);
+      setTurns([]);
+      setQueryText('');
+      setConstraints([]);
+      autoBuilt.current = false;
+    };
+    window.addEventListener('persona:reset', onReset);
+    return () => window.removeEventListener('persona:reset', onReset);
+  }, []);
 
   const handleDemoSelect = (e) => {
     const key = e.target.value;
@@ -74,18 +131,6 @@ export default function TaskB() {
 
   useEffect(() => () => clearTimeout(chipTimer.current), []);
 
-  const handleBuildProfile = async () => {
-    setProfileLoading(true);
-    try {
-      const p = await buildProfile(selectedDemo || 'custom_user', records);
-      setProfile(p);
-    } catch (e) {
-      showToast(e.message, 'error');
-    } finally {
-      setProfileLoading(false);
-    }
-  };
-
   const handleRecommend = async (append = false) => {
     setRecsLoading(true);
     try {
@@ -98,7 +143,17 @@ export default function TaskB() {
       });
       setSessionId(result.session_id);
       setAxes(result.axes ?? []);
-      setRecommendations(prev => append ? [...prev, ...(result.recommendations ?? [])] : (result.recommendations ?? []));
+      const newRecs = result.recommendations ?? [];
+      setRecommendations(prev => append ? [...prev, ...newRecs] : newRecs);
+
+      // Feature 5: append turn
+      setTurns(prev => [...prev, {
+        id: uuid(),
+        query: queryText,
+        constraintsApplied: [...constraints],
+        resultCount: newRecs.length,
+        timestamp: new Date(),
+      }]);
 
       if (agentMode) {
         setAgentLoading(true);
@@ -116,6 +171,13 @@ export default function TaskB() {
     } finally {
       setRecsLoading(false);
     }
+  };
+
+  const handleClearSession = () => {
+    setTurns([]);
+    setSessionId(null);
+    setRecommendations([]);
+    setAxes([]);
   };
 
   const addConstraint = (e) => {
@@ -184,7 +246,7 @@ export default function TaskB() {
                 />
               </div>
               <button
-                onClick={handleBuildProfile}
+                onClick={() => handleBuildProfile(selectedDemo || 'custom_user', records)}
                 disabled={profileLoading}
                 style={{
                   width: '100%', background: '#6366F1', color: '#fff', border: 'none',
@@ -215,6 +277,9 @@ export default function TaskB() {
               onChange={e => setQueryText(e.target.value)}
             />
           </div>
+
+          {/* Feature 5: Conversation Log — below query, above constraints */}
+          <ConversationLog turns={turns} onClear={handleClearSession} />
 
           {/* Constraints */}
           <div style={{ marginBottom: 14 }}>
@@ -279,7 +344,14 @@ export default function TaskB() {
 
       {/* Center col */}
       <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <ProfilePanel profile={profile} loading={profileLoading} />
+        {/* Feature 6: pass primaryDomain + queryText to ProfilePanel */}
+        <ProfilePanel
+          profile={profile}
+          loading={profileLoading}
+          primaryDomain={primaryDomain}
+          queryText={queryText}
+          pageContext="task-b"
+        />
 
         {axes.length > 0 && (
           <div style={{ background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 20 }}>

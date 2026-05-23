@@ -1,7 +1,16 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { RotateCcw } from 'lucide-react';
+import { useToast } from './Toast';
 
 export default function AppShell() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
+
+  const handleReset = () => {
+    window.dispatchEvent(new CustomEvent('persona:reset'));
+    navigate('/');
+    showToast('Demo reset ✓', 'success');
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: '#0A0A0F' }}>
@@ -51,7 +60,7 @@ export default function AppShell() {
         </div>
 
         {/* Right */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <NavLink
             to="/about"
             style={({ isActive }) => ({
@@ -62,12 +71,30 @@ export default function AppShell() {
           >
             About
           </NavLink>
+
+          {/* Reset Demo button */}
+          <button
+            onClick={handleReset}
+            aria-label="Reset demo"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'none', border: '1px solid #1E1E2E', borderRadius: 8,
+              color: '#64748B', fontSize: 12, padding: '6px 12px', cursor: 'pointer',
+              transition: 'border-color 0.2s, color 0.2s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366F1'; e.currentTarget.style.color = '#F8FAFC'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.color = '#64748B'; }}
+          >
+            <RotateCcw size={12} />
+            Reset Demo
+          </button>
+
           <span style={{
             background: '#13131A', border: '1px solid #1E1E2E',
             borderRadius: 999, padding: '3px 10px',
             fontSize: 11, color: '#F59E0B', fontWeight: 600, letterSpacing: '0.04em',
           }}>
-            Yelp Hackathon 2026
+            DSN x BCT · Hackathon 3.0
           </span>
         </div>
       </nav>

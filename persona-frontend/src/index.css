@@ -57,6 +57,15 @@ html, body, #root {
   50% { opacity: 1; }
 }
 
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(34,197,94,0.15); }
+  50% { box-shadow: 0 0 20px rgba(34,197,94,0.35); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes pulse-glow { from, to { box-shadow: 0 0 8px rgba(34,197,94,0.15); } }
+}
+
 .animate-fade-slide { animation: fadeSlideIn 0.35s ease forwards; }
 .animate-fade-x { animation: fadeSlideX 0.35s ease forwards; }
 

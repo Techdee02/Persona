@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { Copy, Check, Star } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import ProfilePanel from '../components/profile/ProfilePanel';
 import TracePanel from '../components/trace/TracePanel';
+import FidelityDashboard from '../components/task-a/FidelityDashboard';
+import Tooltip from '../components/ui/Tooltip';
 import { buildProfile, simulateTaskA } from '../lib/api';
-import { DEMO_USERS } from '../lib/demo-users';
+import { DEMO_USERS, DEMO_REAL_REVIEWS, DEMO_EXPLANATIONS } from '../lib/demo-users';
 import { useToast } from '../components/layout/Toast';
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -44,19 +47,68 @@ function Toggle({ on, onToggle, label }) {
   );
 }
 
-function TypewriterText({ text }) {
+function wordOverlapScore(a, b) {
+  const setA = new Set(a.toLowerCase().split(/\s+/));
+  const setB = new Set(b.toLowerCase().split(/\s+/));
+  const intersection = [...setA].filter(w => setB.has(w)).length;
+  return Math.round((intersection / Math.max(setA.size, setB.size)) * 100);
+}
+
+function HighlightedReview({ text, userId }) {
+  const explanations = DEMO_EXPLANATIONS[userId];
+  if (!explanations || !text) return <span>{text}</span>;
+
+  const entries = Object.entries(explanations).sort((a, b) => b[0].length - a[0].length);
+  const parts = [];
+  let remaining = text;
+  let key = 0;
+
+  while (remaining.length > 0) {
+    let matched = false;
+    for (const [phrase, explanation] of entries) {
+      const idx = remaining.toLowerCase().indexOf(phrase.toLowerCase());
+      if (idx === 0) {
+        parts.push(
+          <Tooltip key={key++} text={explanation}>
+            <span style={{ textDecoration: 'underline dotted #F59E0B', cursor: 'help' }}>
+              {remaining.slice(0, phrase.length)}
+            </span>
+          </Tooltip>
+        );
+        remaining = remaining.slice(phrase.length);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      let nextMatch = remaining.length;
+      for (const [phrase] of entries) {
+        const idx = remaining.toLowerCase().indexOf(phrase.toLowerCase());
+        if (idx > 0 && idx < nextMatch) nextMatch = idx;
+      }
+      parts.push(<span key={key++}>{remaining.slice(0, nextMatch)}</span>);
+      remaining = remaining.slice(nextMatch);
+    }
+  }
+
+  return <>{parts}</>;
+}
+
+function TypewriterText({ text, userId }) {
   const [displayed, setDisplayed] = useState('');
+  const [done, setDone] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!text) return;
-    if (reduced) { setDisplayed(text); return; }
+    setDone(false);
+    if (reduced) { setDisplayed(text); setDone(true); return; }
     setDisplayed('');
     let i = 0;
     const iv = setInterval(() => {
       i++;
       setDisplayed(text.slice(0, i));
-      if (i >= text.length) clearInterval(iv);
+      if (i >= text.length) { clearInterval(iv); setDone(true); }
     }, 30);
     return () => clearInterval(iv);
   }, [text]);
@@ -86,14 +138,112 @@ function TypewriterText({ text }) {
         fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#F8FAFC',
         lineHeight: 1.6, minHeight: 80,
       }}>
-        {displayed}
-        {displayed.length < text.length && <span style={{ opacity: 0.5 }}>|</span>}
+        {done
+          ? <HighlightedReview text={displayed} userId={userId} />
+          : <>{displayed}{displayed.length < text.length && <span style={{ opacity: 0.5 }}>|</span>}</>
+        }
       </div>
     </div>
   );
 }
 
-function OutputPanel({ output, loading }) {
+function ConfidenceBand({ predictedRating, profile }) {
+  if (!profile) return null;
+  const std = profile.rating_stats?.std_dev ?? 0;
+  const count = profile.rating_stats?.count ?? 0;
+  if (!std && !count) return null;
+
+  const lower = Math.max(1, predictedRating - std).toFixed(1);
+  const upper = Math.min(5, predictedRating + std).toFixed(1);
+  const confidence = count >= 10 ? 'High' : count >= 5 ? 'Medium' : 'Low';
+  const confidenceColor = count >= 10 ? '#22C55E' : count >= 5 ? '#F59E0B' : '#EF4444';
+
+  const lowerPct = ((parseFloat(lower) - 1) / 4) * 100;
+  const upperPct = ((parseFloat(upper) - 1) / 4) * 100;
+
+  return (
+    <div style={{ marginTop: 12, padding: '10px 14px', background: '#0A0A0F', borderRadius: 8, border: '1px solid #1E1E2E' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#64748B' }}>
+          Range: {lower} — {upper}
+        </span>
+        <span
+          title={`Based on ${count} reviews. More history = narrower range.`}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: confidenceColor, cursor: 'default' }}
+        >
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: confidenceColor, display: 'inline-block' }} />
+          Confidence: {confidence}
+        </span>
+      </div>
+      <div style={{ height: 4, background: '#1E1E2E', borderRadius: 2, position: 'relative' }}>
+        <div style={{
+          position: 'absolute', left: `${lowerPct}%`, width: `${upperPct - lowerPct}%`,
+          height: '100%', background: '#F59E0B', borderRadius: 2,
+          transition: reduced ? 'none' : 'width 0.4s ease',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+function ComparisonDrawer({ generatedText, userId }) {
+  const [open, setOpen] = useState(false);
+  if (!userId?.startsWith('demo_')) return null;
+
+  const realReview = DEMO_REAL_REVIEWS[userId] ?? '';
+  const score = generatedText && realReview ? wordOverlapScore(generatedText, realReview) : 0;
+  const scoreColor = score >= 60 ? '#22C55E' : score >= 40 ? '#F59E0B' : '#EF4444';
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-label="Compare with real review"
+        style={{
+          width: '100%', background: 'none', border: '1px solid #1E1E2E',
+          borderRadius: 8, color: '#64748B', fontSize: 12, padding: '8px 0',
+          cursor: 'pointer', transition: 'border-color 0.2s, color 0.2s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366F1'; e.currentTarget.style.color = '#F8FAFC'; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.color = '#64748B'; }}
+      >
+        {open ? 'Hide comparison' : 'Compare with real review'}
+      </button>
+
+      <div style={{
+        overflow: 'hidden',
+        maxHeight: open ? 400 : 0,
+        transition: reduced ? 'none' : 'max-height 0.35s ease',
+      }}>
+        <div style={{ paddingTop: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <div style={{ flex: 1, fontSize: 11, color: '#6366F1', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>AI Generated</div>
+            <span style={{
+              background: `${scoreColor}20`, border: `1px solid ${scoreColor}`,
+              borderRadius: 999, padding: '2px 10px', fontSize: 11, color: scoreColor, fontWeight: 600,
+            }}>
+              Similarity: {score}%
+            </span>
+            <div style={{ flex: 1, fontSize: 11, color: '#F59E0B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'right' }}>Real Review</div>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {[generatedText, realReview].map((txt, i) => (
+              <div key={i} style={{
+                flex: 1, background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 8,
+                padding: 12, fontFamily: 'JetBrains Mono, monospace', fontSize: 12,
+                color: '#F8FAFC', lineHeight: 1.6, maxHeight: 200, overflowY: 'auto',
+              }}>
+                {txt}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OutputPanel({ output, loading, profile, userId }) {
   if (loading) {
     return (
       <div style={{ background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 20 }}>
@@ -120,7 +270,6 @@ function OutputPanel({ output, loading }) {
 
   return (
     <div style={{ background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 20 }}>
-      {/* Rating badge */}
       <div style={{ textAlign: 'center', marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginBottom: 8 }}>
           {[1, 2, 3, 4, 5].map(i => (
@@ -142,18 +291,25 @@ function OutputPanel({ output, loading }) {
         </div>
       </div>
 
+      {/* Feature 2: Confidence Band */}
+      <ConfidenceBand predictedRating={rating} profile={profile} />
+
       <div style={{ height: 1, background: '#1E1E2E', margin: '16px 0' }} />
 
       <div style={{ fontSize: 10, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
         Generated Review
       </div>
-      <TypewriterText text={output.review_text ?? ''} />
+      <TypewriterText text={output.review_text ?? ''} userId={userId} />
+
+      {/* Feature 3: Comparison Drawer */}
+      <ComparisonDrawer generatedText={output.review_text ?? ''} userId={userId} />
     </div>
   );
 }
 
 export default function TaskA() {
   const { showToast } = useToast();
+  const [searchParams] = useSearchParams();
   const [records, setRecords] = useState([]);
   const [selectedDemo, setSelectedDemo] = useState('');
   const [demoChip, setDemoChip] = useState(false);
@@ -165,6 +321,46 @@ export default function TaskA() {
   const [outputLoading, setOutputLoading] = useState(false);
   const [traceLoading, setTraceLoading] = useState(false);
   const chipTimer = useRef(null);
+  const autoBuilt = useRef(false);
+
+  const handleBuildProfile = async (uid, recs) => {
+    setProfileLoading(true);
+    try {
+      const p = await buildProfile(uid, recs);
+      setProfile(p);
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  // Feature 8: Shareable URL — auto-load demo on mount
+  useEffect(() => {
+    const demoParam = searchParams.get('demo');
+    if (demoParam && DEMO_USERS[demoParam] && !autoBuilt.current) {
+      autoBuilt.current = true;
+      const demoUser = DEMO_USERS[demoParam];
+      setRecords(demoUser.records);
+      setSelectedDemo(demoParam);
+      handleBuildProfile(demoParam, demoUser.records);
+    }
+  }, []);
+
+  // Feature 9: Reset listener
+  useEffect(() => {
+    const onReset = () => {
+      setRecords([]);
+      setSelectedDemo('');
+      setProfile(null);
+      setOutput(null);
+      setTargetItem({ name: '', description: '' });
+      setUseLLM(false);
+      autoBuilt.current = false;
+    };
+    window.addEventListener('persona:reset', onReset);
+    return () => window.removeEventListener('persona:reset', onReset);
+  }, []);
 
   const handleDemoSelect = (e) => {
     const key = e.target.value;
@@ -178,18 +374,6 @@ export default function TaskA() {
   };
 
   useEffect(() => () => clearTimeout(chipTimer.current), []);
-
-  const handleBuildProfile = async () => {
-    setProfileLoading(true);
-    try {
-      const p = await buildProfile(selectedDemo || 'custom_user', records);
-      setProfile(p);
-    } catch (e) {
-      showToast(e.message, 'error');
-    } finally {
-      setProfileLoading(false);
-    }
-  };
 
   const handleSimulate = async () => {
     setOutputLoading(true);
@@ -222,7 +406,6 @@ export default function TaskA() {
         <div style={{ background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 20 }}>
           <SectionHeader num="01" label="Build Profile" />
 
-          {/* Demo selector */}
           <div style={{ marginBottom: 12 }}>
             <label htmlFor="demo-select" style={{ fontSize: 12, color: '#64748B', display: 'block', marginBottom: 6 }}>Demo User</label>
             <select id="demo-select" value={selectedDemo} onChange={handleDemoSelect}>
@@ -242,7 +425,6 @@ export default function TaskA() {
             )}
           </div>
 
-          {/* Textarea */}
           <div style={{ marginBottom: 12 }}>
             <label htmlFor="records-input" style={{ fontSize: 12, color: '#64748B', display: 'block', marginBottom: 6 }}>Review Records (JSON)</label>
             <textarea
@@ -258,13 +440,12 @@ export default function TaskA() {
           </div>
 
           <button
-            onClick={handleBuildProfile}
+            onClick={() => handleBuildProfile(selectedDemo || 'custom_user', records)}
             disabled={profileLoading}
             style={{
               width: '100%', background: '#6366F1', color: '#fff', border: 'none',
               borderRadius: 8, padding: '10px 0', fontWeight: 600, fontSize: 14,
               cursor: profileLoading ? 'not-allowed' : 'pointer', marginBottom: 20,
-              position: 'relative', overflow: 'hidden',
             }}
           >
             {profileLoading
@@ -311,36 +492,41 @@ export default function TaskA() {
             )}
           </div>
 
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={handleSimulate}
-              disabled={!canSimulate || outputLoading}
-              title={!canSimulate ? 'Build a profile first' : ''}
-              style={{
-                width: '100%', background: canSimulate ? '#F59E0B' : '#1E1E2E',
-                color: canSimulate ? '#0A0A0F' : '#64748B',
-                border: 'none', borderRadius: 8, padding: '10px 0',
-                fontWeight: 600, fontSize: 14,
-                cursor: !canSimulate || outputLoading ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {outputLoading
-                ? <div className="skeleton" style={{ height: 18, width: '60%', margin: '0 auto', borderRadius: 4 }} />
-                : 'Simulate Review'}
-            </button>
-          </div>
+          <button
+            onClick={handleSimulate}
+            disabled={!canSimulate || outputLoading}
+            title={!canSimulate ? 'Build a profile first' : ''}
+            style={{
+              width: '100%', background: canSimulate ? '#F59E0B' : '#1E1E2E',
+              color: canSimulate ? '#0A0A0F' : '#64748B',
+              border: 'none', borderRadius: 8, padding: '10px 0',
+              fontWeight: 600, fontSize: 14,
+              cursor: !canSimulate || outputLoading ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {outputLoading
+              ? <div className="skeleton" style={{ height: 18, width: '60%', margin: '0 auto', borderRadius: 4 }} />
+              : 'Simulate Review'}
+          </button>
         </div>
       </div>
 
       {/* Center col */}
       <div style={{ gridColumn: 'span 4' }}>
-        <ProfilePanel profile={profile} loading={profileLoading} />
+        <ProfilePanel profile={profile} loading={profileLoading} pageContext="task-a" />
       </div>
 
       {/* Right col */}
       <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <TracePanel trace={output?.reasoning ?? null} mode="text" loading={traceLoading} />
-        <OutputPanel output={output} loading={outputLoading} />
+        {/* Feature 4: Fidelity Dashboard */}
+        <FidelityDashboard profile={profile} output={output} />
+        <OutputPanel
+          output={output}
+          loading={outputLoading}
+          profile={profile}
+          userId={selectedDemo || 'custom_user'}
+        />
       </div>
     </div>
   );

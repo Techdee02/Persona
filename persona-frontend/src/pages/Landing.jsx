@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { PenLine, Compass } from 'lucide-react';
+import { Brain, Globe, Zap } from 'lucide-react';
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -69,13 +69,6 @@ export default function Landing() {
           borderRadius: 16, padding: 32,
           display: 'flex', flexDirection: 'column', gap: 16,
         }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 12,
-            background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <PenLine size={22} color="#F59E0B" />
-          </div>
           <div>
             <div style={{ fontSize: 20, fontWeight: 700, color: '#F8FAFC', marginBottom: 8 }}>Review Simulation</div>
             <div style={{ fontSize: 14, color: '#64748B', lineHeight: 1.6 }}>
@@ -105,13 +98,6 @@ export default function Landing() {
           borderRadius: 16, padding: 32,
           display: 'flex', flexDirection: 'column', gap: 16,
         }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 12,
-            background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Compass size={22} color="#6366F1" />
-          </div>
           <div>
             <div style={{ fontSize: 20, fontWeight: 700, color: '#F8FAFC', marginBottom: 8 }}>Smart Recommendations</div>
             <div style={{ fontSize: 14, color: '#64748B', lineHeight: 1.6 }}>
@@ -135,8 +121,33 @@ export default function Landing() {
         </div>
       </div>
 
+      {/* Feature 10B: Why This Matters strip */}
+      <div style={{ width: '100%', maxWidth: 800, marginTop: 32, display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {[
+          { icon: <Brain size={22} color="#6366F1" />, title: 'Behaviour', body: 'We model how users rate, write, and decide', accent: '#6366F1' },
+          { icon: <Globe size={22} color="#F59E0B" />, title: 'Context', body: 'We detect cultural register and linguistic identity', accent: '#F59E0B' },
+          { icon: <Zap size={22} color="#6366F1" />, title: 'Prediction', body: 'We simulate what they\'d say before they say it', accent: '#6366F1' },
+        ].map(({ icon, title, body, accent }) => (
+          <div key={title} style={{
+            flex: 1, minWidth: 200, textAlign: 'center',
+            background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: '20px 16px',
+          }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 10,
+              background: `${accent}18`, border: `1px solid ${accent}30`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 12px',
+            }}>
+              {icon}
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#F8FAFC', marginBottom: 6 }}>{title}</div>
+            <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.6 }}>"{body}"</div>
+          </div>
+        ))}
+      </div>
+
       {/* Flow diagram */}
-      <div style={{ marginTop: 64, display: 'flex', alignItems: 'center', gap: 0 }}>
+      <div style={{ marginTop: 48, display: 'flex', alignItems: 'center', gap: 0 }}>
         <FlowNode label="Your Reviews" color="#64748B" />
         <FlowArrow delay={0} />
         <FlowNode label="Persona Engine" color="#F59E0B" />

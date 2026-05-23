@@ -38,6 +38,22 @@ const STACK = [
   { icon: '📊', label: 'Recharts' },
 ];
 
+const TASK_A_CRITERIA = [
+  { name: 'Review Text Quality', method: 'ROUGE / BERTScore' },
+  { name: 'Rating Accuracy', method: 'RMSE' },
+  { name: 'Behavioural Fidelity', method: 'Human evaluation' },
+  { name: 'Solution Paper', method: 'Written submission' },
+  { name: 'Code Reproducibility', method: 'Reproducibility audit' },
+];
+
+const TASK_B_CRITERIA = [
+  { name: 'Ranking Quality', method: 'NDCG@10 / Hit Rate', pts: 30 },
+  { name: 'Cold-Start & Cross-Domain', method: 'Held-out evaluation', pts: 25 },
+  { name: 'Contextual Relevance', method: 'Human eval', pts: 20 },
+  { name: 'Solution Paper', method: 'Written submission', pts: 15 },
+  { name: 'Code Reproducibility', method: 'Reproducibility audit', pts: 10 },
+];
+
 export default function About() {
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '48px 24px' }}>
@@ -74,6 +90,61 @@ export default function About() {
           title="Smart Recommendations"
           body="For users with history, Persona extracts preference axes and runs vector similarity search against 50k Yelp businesses. For new users, a cold-start chat collects preferences. A 4-step agent loop — profile → embed → search → rank — refines results using LLM reasoning."
         />
+      </div>
+
+      {/* Feature 12: Scoring Rubric */}
+      <div style={{ marginBottom: 48 }}>
+        <div style={{ fontSize: 24, fontWeight: 700, color: '#F8FAFC', marginBottom: 24 }}>Evaluation Criteria</div>
+
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 24 }}>
+          {/* Task A card */}
+          <div style={{
+            flex: 1, minWidth: 280,
+            background: '#13131A', border: '1px solid #1E1E2E',
+            borderTop: '3px solid #6366F1', borderRadius: 12, padding: 24,
+          }}>
+            <div style={{ fontSize: 11, color: '#6366F1', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, marginBottom: 16 }}>
+              Task A · User Modeling
+            </div>
+            {TASK_A_CRITERIA.map(({ name, method }) => (
+              <div key={name} style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid #1E1E2E' }}>
+                <div style={{ fontSize: 14, color: '#F8FAFC' }}>{name}</div>
+                <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{method}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Task B card */}
+          <div style={{
+            flex: 1, minWidth: 280,
+            background: '#13131A', border: '1px solid #1E1E2E',
+            borderTop: '3px solid #F59E0B', borderRadius: 12, padding: 24,
+          }}>
+            <div style={{ fontSize: 11, color: '#F59E0B', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, marginBottom: 16 }}>
+              Task B · Recommendation
+            </div>
+            {TASK_B_CRITERIA.map(({ name, method, pts }) => (
+              <div key={name} style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid #1E1E2E', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 14, color: '#F8FAFC' }}>{name}</div>
+                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{method}</div>
+                </div>
+                <span style={{ color: '#F59E0B', fontWeight: 700, fontSize: 13, fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>{pts}pts</span>
+              </div>
+            ))}
+            <div style={{ textAlign: 'right', fontSize: 13, color: '#F8FAFC', fontWeight: 600, marginTop: 4 }}>
+              100 pts total
+            </div>
+          </div>
+        </div>
+
+        {/* Pull-quote */}
+        <div style={{ textAlign: 'center', padding: '0 24px' }}>
+          <p style={{ fontSize: 14, color: '#64748B', fontStyle: 'italic', lineHeight: 1.7, margin: 0 }}>
+            "A model score reflects what your machine did. A solution paper reveals what you understood. Both matter."
+          </p>
+          <p style={{ fontSize: 12, color: '#64748B', marginTop: 6 }}>— DSN x BCT Judging Panel</p>
+        </div>
       </div>
 
       {/* Tech stack */}

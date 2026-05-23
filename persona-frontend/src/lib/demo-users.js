@@ -43,6 +43,32 @@ export const DEMO_USERS = {
   },
 };
 
+export const DEMO_REAL_REVIEWS = {
+  demo_generous: "Abeg this place is absolutely fantastic! The jollof rice was smoky and the grilled chicken was top tier — you could taste the quality in every bite. Service was warm and attentive, the staff genuinely made you feel welcome. Portion sizes are generous and the price is fair for what you get. The atmosphere had that authentic Lagos energy. I go definitely come back, e don do for this restaurant!",
+  demo_critic: "Disappointing experience overall. The service was slow and the staff seemed indifferent. Food quality was inconsistent — the starter was decent but the main course arrived lukewarm. For the price point they charge, I expected significantly better. The portions were small and the value for money is poor. There are better options in the area that deliver more for less.",
+  demo_newuser: "Nice place with a good vibe. The food was tasty and the service was friendly. Would recommend to others looking for a decent meal.",
+};
+
+export const DEMO_EXPLANATIONS = {
+  demo_generous: {
+    'Abeg': 'Nigerian pidgin · cultural register applied',
+    'food': 'food axis · weight 0.62',
+    'excellent': 'positive sentiment · mean rating 4.5',
+    'service': 'service axis · weight 0.30',
+    'try am': 'Nigerian pidgin phrase · code-switching detected',
+    'na wa': 'Nigerian pidgin · cultural register applied',
+    'top tier': 'positive sentiment · mean rating 4.5',
+  },
+  demo_critic: {
+    'poor': 'negative sentiment · mean rating 2.8',
+    'service': 'service axis · weight 0.70',
+    'price': 'price axis · weight 0.55',
+    'disappointed': 'critical tone · harsh rater profile',
+    'slow': 'service axis · negative signal',
+    'overpriced': 'price axis · critical rater profile',
+  },
+};
+
 export const DEMO_AGENT_PAYLOAD = {
   user_id: 'demo_generous',
   records: DEMO_USERS.demo_generous.records.slice(0, 5),

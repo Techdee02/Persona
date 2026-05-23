@@ -1,4 +1,5 @@
-import { TrendingUp, TrendingDown, Minus, User } from 'lucide-react';
+import { useState } from 'react';
+import { TrendingUp, TrendingDown, Minus, User, Share2 } from 'lucide-react';
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -60,7 +61,35 @@ function ValueBar({ label, value, max, dominant, delay }) {
   );
 }
 
-export default function ProfilePanel({ profile, loading }) {
+function buildPersonaNarrative(profile) {
+  const name = profile.user_id.replace(/_/g, ' ');
+  const mean = profile.rating_stats?.mean ?? 3;
+  const raterType = mean >= 4.0 ? 'a generous rater' : mean >= 3.0 ? 'a neutral rater' : 'a critical rater';
+  const keywords = Object.entries(profile.value_keywords ?? {}).sort((a, b) => b[1] - a[1]);
+  const topKeyword = keywords[0]?.[0] ?? 'quality';
+  const delta = profile.trajectory?.delta_rating ?? 0;
+  const trajectory = delta > 0.1
+    ? 'has become increasingly positive over time'
+    : delta < -0.1
+    ? 'has become more critical over time'
+    : 'has been consistent over time';
+  const cultural = profile.cultural_signals?.code_switching_detected ? ' who writes in Nigerian English' : '';
+  const detail = (profile.stylometry?.avg_word_count ?? 0) > 50 ? 'detailed' : 'concise';
+  return `${name} is ${raterType}${cultural} who cares deeply about ${topKeyword} quality. They write ${detail} reviews and ${trajectory}.`;
+}
+
+const NON_FOOD_KEYWORDS = ['movie', 'film', 'gym', 'hotel', 'shop', 'book', 'activity', 'park', 'spa'];
+
+export default function ProfilePanel({ profile, loading, primaryDomain = null, queryText = '', pageContext = 'task-a' }) {
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const handleShare = () => {
+    const url = `${window.location.origin}${window.location.pathname}?demo=${profile.user_id}`;
+    navigator.clipboard.writeText(url);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2000);
+  };
+
   if (loading) {
     return (
       <div style={{ background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 20 }}>
@@ -90,8 +119,8 @@ export default function ProfilePanel({ profile, loading }) {
   }
 
   const { rating_stats, stylometry, value_keywords, trajectory, cultural_signals, user_id } = profile;
-  const mean = rating_stats.mean ?? 0;
-  const isColdStart = rating_stats.count === 0;
+  const mean = rating_stats?.mean ?? 0;
+  const isColdStart = rating_stats?.count === 0;
 
   const avatarBg = mean >= 4.0 ? '#22C55E' : mean >= 3.0 ? '#F59E0B' : '#EF4444';
   const raterLabel = mean >= 4.0 ? 'Generous Rater' : mean >= 3.0 ? 'Neutral Rater' : 'Harsh Rater';
@@ -108,9 +137,52 @@ export default function ProfilePanel({ profile, loading }) {
   const trendColor = delta > 0.1 ? '#22C55E' : delta < -0.1 ? '#EF4444' : '#F59E0B';
 
   const showCultural = cultural_signals?.code_switching_detected || (cultural_signals?.nigerian_english_index ?? 0) > 0;
+  const narrative = buildPersonaNarrative(profile);
+
+  const isCrossDomain = pageContext === 'task-b' && primaryDomain
+    && NON_FOOD_KEYWORDS.some(k => queryText.toLowerCase().includes(k));
 
   return (
-    <div key={user_id} style={{ background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div key={user_id} style={{ background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 20, position: 'relative' }}>
+
+      {/* Share button */}
+      <div style={{ position: 'absolute', top: 16, right: 16 }}>
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={handleShare}
+            aria-label="Copy shareable profile link"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center' }}
+          >
+            <Share2 size={14} />
+          </button>
+          {shareCopied && (
+            <span style={{
+              position: 'absolute', top: -28, right: 0, whiteSpace: 'nowrap',
+              background: '#13131A', border: '1px solid #22C55E', borderRadius: 6,
+              padding: '2px 8px', fontSize: 11, color: '#22C55E',
+            }}>
+              Link copied! ✓
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Feature 1: Persona Identity Card */}
+      <div style={{
+        background: '#1A1A2E', borderLeft: '4px solid #F59E0B', borderRadius: '0 8px 8px 0',
+        padding: '10px 14px', display: 'flex', gap: 10, alignItems: 'flex-start',
+        opacity: 0,
+        animation: reduced ? 'none' : 'fadeSlideIn 0.4s ease forwards',
+      }}>
+        <User size={16} color="#F59E0B" style={{ flexShrink: 0, marginTop: 2 }} />
+        <div>
+          <div style={{ fontSize: 9, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 4 }}>Persona</div>
+          <p style={{ margin: 0, fontSize: 12, color: '#F8FAFC', fontFamily: "'Space Grotesk', sans-serif", fontStyle: 'italic', lineHeight: 1.5 }}>
+            {narrative}
+          </p>
+        </div>
+      </div>
+
       {/* Identity */}
       <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
         <div style={{
@@ -132,6 +204,21 @@ export default function ProfilePanel({ profile, loading }) {
               : <span style={{ color: '#64748B', fontSize: 12 }}>Based on {rating_stats.count} reviews</span>
             }
           </div>
+          {/* Feature 6: Cross-Domain Badge */}
+          {isCrossDomain && (
+            <div style={{ marginTop: 6 }}>
+              <span
+                title={`Transferring ${primaryDomain} preference axes to new domain`}
+                style={{
+                  background: 'rgba(245,158,11,0.1)', border: '1px solid #F59E0B',
+                  borderRadius: 999, padding: '2px 10px', fontSize: 11, color: '#F59E0B',
+                  cursor: 'default',
+                }}
+              >
+                ⚡ Cross-domain inference
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -182,13 +269,24 @@ export default function ProfilePanel({ profile, loading }) {
         </div>
       )}
 
-      {/* Cultural Signals */}
+      {/* Cultural Signals — Feature 11: Nigerian Bonus Callout */}
       {showCultural && (
         <div style={{
           border: '1px solid #22C55E', borderRadius: 10, padding: '12px 14px',
-          background: '#0D1F12', boxShadow: '0 0 12px rgba(34,197,94,0.15)',
-          display: 'flex', gap: 12, alignItems: 'flex-start',
+          background: '#0D1F12',
+          boxShadow: reduced ? '0 0 12px rgba(34,197,94,0.15)' : undefined,
+          animation: reduced ? 'none' : 'pulse-glow 2s ease-in-out infinite',
+          display: 'flex', gap: 12, alignItems: 'flex-start', position: 'relative',
         }}>
+          {cultural_signals?.code_switching_detected && (
+            <span style={{
+              position: 'absolute', top: 10, right: 10,
+              background: 'transparent', border: '1px solid #22C55E',
+              borderRadius: 999, padding: '1px 8px', fontSize: 10, color: '#22C55E',
+            }}>
+              +Bonus Signal
+            </span>
+          )}
           <span style={{ fontSize: 24 }}>🇳🇬</span>
           <div style={{ flex: 1 }}>
             <div style={{ color: '#22C55E', fontWeight: 700, fontSize: 13 }}>Nigerian English detected</div>
@@ -205,6 +303,11 @@ export default function ProfilePanel({ profile, loading }) {
                 transition: reduced ? 'none' : 'width 0.6s ease',
               }} />
             </div>
+            {cultural_signals?.code_switching_detected && (
+              <div style={{ fontSize: 11, color: '#22C55E', fontStyle: 'italic', marginTop: 8 }}>
+                "Nigerian cultural context will be applied to all outputs"
+              </div>
+            )}
           </div>
         </div>
       )}
