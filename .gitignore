@@ -12,12 +12,12 @@ data/*.tar
 data/*.gz
 *.tar
 *.tar.gz
-backend/data/*.json
-backend/data/*.jsonl
-backend/data/*.log
-backend/data/*.pdf
-backend/data/yelp_raw/
 
 # Untracked documents
 *.docx
 AfriForge_PRD.pdf
+
+# SSH keys
+key
+key.pub
+*.pem

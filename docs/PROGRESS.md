@@ -678,3 +678,54 @@ Notes:
 - Created .env from .env.example
 - Set VECTOR_STORE_PATH=/workspaces/Persona/backend/data/yelp_vector_store_200k.jsonl
 - API loads 200k store at startup without any other config changes required
+
+---
+
+## Phase 7 Checklist (Production Deployment)
+
+- [x] Task 1: DigitalOcean Droplet provisioned (Ubuntu 22.04, 2 GB RAM, lon1)
+- [x] Task 2: Docker installed and repo cloned on droplet
+- [x] Task 3: Vector store uploaded to DigitalOcean Spaces (persona-space / lon1)
+- [x] Task 4: entrypoint.sh auto-download validated — 200k store downloaded on first boot
+- [x] Task 5: DuckDNS subdomain configured (personabackend.duckdns.org → 188.166.149.75)
+- [x] Task 6: Let's Encrypt SSL certificate issued via Certbot (expires 2026-08-21)
+- [x] Task 7: Full HTTPS stack live — curl https://personabackend.duckdns.org/health returns {"status":"ok"}
+- [x] Task 8: Vercel frontend wired to HTTPS backend (VITE_API_URL updated, redeployed)
+- [x] Task 9: Deployment guide written (docs/DEPLOYMENT.md)
+
+## Phase 7 Task Logs
+
+### Phase 7 Task 1–4: Droplet + Vector Store
+
+Status: Done
+
+Notes:
+- Provisioned 2 GB RAM / 1 vCPU Ubuntu 22.04 droplet in lon1 region
+- Installed Docker via get.docker.com convenience script (Docker 29.5.2)
+- Cloned repo from GitHub; wrote .env with DO Spaces credentials and OpenAI key
+- Uploaded yelp_vector_store_200k.jsonl (1.6 GB) to DO Spaces bucket persona-space
+  using boto3 with endpoint https://lon1.digitaloceanspaces.com
+- On first docker compose up -d, entrypoint.sh downloaded the 1.6 GB file and
+  confirmed "Loaded vector store from /data/yelp_vector_store_200k.jsonl (200192 items)"
+
+### Phase 7 Task 5–7: DuckDNS + SSL
+
+Status: Done
+
+Notes:
+- Registered personabackend.duckdns.org (free) at duckdns.org; pointed to 188.166.149.75
+- DNS propagated immediately
+- Ran Certbot in webroot mode via Docker Compose certbot profile
+- Two-step nginx config: HTTP-only first (for ACME challenge), then full TLS config after cert issued
+- cert path: /etc/letsencrypt/live/personabackend.duckdns.org/fullchain.pem
+- curl https://personabackend.duckdns.org/health → {"status":"ok"} confirmed
+
+### Phase 7 Task 8–9: Frontend wiring + docs
+
+Status: Done
+
+Notes:
+- Set VITE_API_URL=https://personabackend.duckdns.org in Vercel environment variables
+- Redeployed Vercel frontend; mixed content and CORS errors resolved
+- Written docs/DEPLOYMENT.md covering full setup, operational commands, first-boot
+  behaviour, SSL renewal, and troubleshooting table
