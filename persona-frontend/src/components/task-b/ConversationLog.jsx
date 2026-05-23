@@ -7,59 +7,53 @@ export default function ConversationLog({ turns, onClear }) {
   if (!turns.length) return null;
 
   return (
-    <div style={{ background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 20, marginBottom: 16 }}>
-      <div style={{ fontSize: 10, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14 }}>
-        Conversation
-      </div>
+    <div className="bg-[#13131A] border border-[#1E1E2E] rounded-xl p-5 mb-4">
+      <div className="text-[10px] text-[#64748B] uppercase tracking-widest mb-3.5">Conversation</div>
 
-      <div style={{ position: 'relative' }}>
-        <div style={{ position: 'absolute', left: 5, top: 8, bottom: 24, width: 2, background: '#1E1E2E', borderRadius: 1 }} />
+      <div className="relative">
+        <div className="absolute left-[5px] top-2 bottom-6 w-0.5 bg-[#1E1E2E] rounded-sm" />
 
         {turns.map((turn, i) => {
           const isLatest = i === turns.length - 1;
           return (
             <div
               key={turn.id}
+              className="pl-5 mb-3 relative"
               style={{
-                paddingLeft: 22, marginBottom: 12, position: 'relative',
                 opacity: 0,
                 animation: reduced ? 'none' : 'fadeSlideIn 0.3s ease forwards',
                 animationDelay: reduced ? '0ms' : `${i * 60}ms`,
                 background: isLatest ? '#1A1A2E' : 'transparent',
                 borderLeft: isLatest ? '2px solid #6366F1' : 'none',
                 borderRadius: isLatest ? '0 6px 6px 0' : 0,
-                padding: isLatest ? '8px 8px 8px 22px' : '0 0 0 22px',
+                padding: isLatest ? '8px 8px 8px 20px' : '0 0 0 20px',
               }}
             >
-              <div style={{
-                position: 'absolute', left: 0, top: 6,
-                width: 12, height: 12, borderRadius: '50%',
-                background: isLatest ? '#6366F1' : '#1E1E2E',
-                border: isLatest ? 'none' : '2px solid #6366F1',
-                flexShrink: 0,
-              }} />
+              <div
+                className="absolute top-1.5 w-3 h-3 rounded-full"
+                style={{
+                  left: 0,
+                  background: isLatest ? '#6366F1' : '#1E1E2E',
+                  border: isLatest ? 'none' : '2px solid #6366F1',
+                }}
+              />
 
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{
-                  fontSize: 13, color: '#F8FAFC',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  maxWidth: 160,
-                }}>
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-sm text-[#F8FAFC] overflow-hidden text-ellipsis whitespace-nowrap max-w-[160px]">
                   "{turn.query.length > 40 ? turn.query.slice(0, 40) + '…' : turn.query}"
                 </span>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
-                  <span style={{ fontSize: 11, color: '#64748B' }}>{turn.resultCount} results</span>
-                  <span style={{ fontSize: 11, color: '#64748B' }}>{fmt(turn.timestamp)}</span>
+                <div className="flex flex-col items-end shrink-0">
+                  <span className="text-[11px] text-[#64748B]">{turn.resultCount} results</span>
+                  <span className="text-[11px] text-[#64748B]">{fmt(turn.timestamp)}</span>
                 </div>
               </div>
 
               {turn.constraintsApplied.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                <div className="flex flex-wrap gap-1 mt-1">
                   {turn.constraintsApplied.map((c, j) => (
-                    <span key={j} style={{
-                      background: '#0A0A0F', border: '1px solid #1E1E2E',
-                      borderRadius: 999, padding: '1px 8px', fontSize: 10, color: '#64748B',
-                    }}>{c}</span>
+                    <span key={j} className="bg-[#0A0A0F] border border-[#1E1E2E] rounded-full px-2 py-0.5 text-[10px] text-[#64748B]">
+                      {c}
+                    </span>
                   ))}
                 </div>
               )}
@@ -71,13 +65,7 @@ export default function ConversationLog({ turns, onClear }) {
       <button
         onClick={onClear}
         aria-label="Clear session"
-        style={{
-          marginTop: 8, background: 'none', border: '1px solid #1E1E2E',
-          borderRadius: 6, color: '#64748B', fontSize: 11, padding: '4px 12px',
-          cursor: 'pointer', width: '100%',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366F1'; e.currentTarget.style.color = '#F8FAFC'; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.color = '#64748B'; }}
+        className="mt-2 w-full bg-transparent border border-[#1E1E2E] rounded-md text-[#64748B] text-[11px] py-1 cursor-pointer transition-all duration-200 hover:border-[#6366F1] hover:text-[#F8FAFC]"
       >
         Clear session
       </button>

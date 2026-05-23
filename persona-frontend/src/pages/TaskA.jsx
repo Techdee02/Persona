@@ -13,28 +13,24 @@ const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function SectionHeader({ num, label }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-      <div style={{ width: 4, height: 20, background: '#F59E0B', borderRadius: 2 }} />
-      <span style={{ fontSize: 10, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600 }}>
-        {num} — {label}
-      </span>
+    <div className="flex items-center gap-2.5 mb-3.5">
+      <div className="w-1 h-5 bg-[#F59E0B] rounded-sm" />
+      <span className="text-[10px] text-[#64748B] uppercase tracking-widest font-semibold">{num} — {label}</span>
     </div>
   );
 }
 
 function Toggle({ on, onToggle, label }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <span style={{ fontSize: 13, color: '#F8FAFC' }}>{label}</span>
+    <div className="flex items-center justify-between">
+      <span className="text-sm text-[#F8FAFC]">{label}</span>
       <button
-        role="switch"
-        aria-checked={on}
-        aria-label={label}
-        onClick={onToggle}
+        role="switch" aria-checked={on} aria-label={label} onClick={onToggle}
+        className="relative border-none cursor-pointer rounded-full"
         style={{
-          width: 40, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer',
+          width: 40, height: 22,
           background: on ? '#6366F1' : '#1E1E2E',
-          position: 'relative', transition: reduced ? 'none' : 'background 0.2s',
+          transition: reduced ? 'none' : 'background 0.2s',
         }}
       >
         <div style={{
@@ -120,27 +116,20 @@ function TypewriterText({ text, userId }) {
   };
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="relative">
       <button
         onClick={copy}
         aria-label="Copy review text"
-        style={{
-          position: 'absolute', top: 8, right: 8,
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: copied ? '#22C55E' : '#64748B',
-        }}
+        className="absolute top-2 right-2 bg-transparent border-none cursor-pointer"
+        style={{ color: copied ? '#22C55E' : '#64748B' }}
       >
         {copied ? <Check size={14} /> : <Copy size={14} />}
       </button>
-      <div style={{
-        background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 8,
-        padding: '12px 36px 12px 12px',
-        fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#F8FAFC',
-        lineHeight: 1.6, minHeight: 80,
-      }}>
+      <div className="bg-[#0A0A0F] border border-[#1E1E2E] rounded-lg p-3 pr-9 text-[#F8FAFC] leading-relaxed min-h-[80px] text-sm"
+        style={{ fontFamily: 'JetBrains Mono, monospace' }}>
         {done
           ? <HighlightedReview text={displayed} userId={userId} />
-          : <>{displayed}{displayed.length < text.length && <span style={{ opacity: 0.5 }}>|</span>}</>
+          : <>{displayed}{displayed.length < text.length && <span className="opacity-50">|</span>}</>
         }
       </div>
     </div>
@@ -157,30 +146,32 @@ function ConfidenceBand({ predictedRating, profile }) {
   const upper = Math.min(5, predictedRating + std).toFixed(1);
   const confidence = count >= 10 ? 'High' : count >= 5 ? 'Medium' : 'Low';
   const confidenceColor = count >= 10 ? '#22C55E' : count >= 5 ? '#F59E0B' : '#EF4444';
-
   const lowerPct = ((parseFloat(lower) - 1) / 4) * 100;
   const upperPct = ((parseFloat(upper) - 1) / 4) * 100;
 
   return (
-    <div style={{ marginTop: 12, padding: '10px 14px', background: '#0A0A0F', borderRadius: 8, border: '1px solid #1E1E2E' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#64748B' }}>
+    <div className="mt-3 px-3.5 py-2.5 bg-[#0A0A0F] rounded-lg border border-[#1E1E2E]">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[11px] text-[#64748B]" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
           Range: {lower} — {upper}
         </span>
         <span
           title={`Based on ${count} reviews. More history = narrower range.`}
-          style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: confidenceColor, cursor: 'default' }}
+          className="flex items-center gap-1 text-[11px] cursor-default"
+          style={{ color: confidenceColor }}
         >
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: confidenceColor, display: 'inline-block' }} />
+          <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: confidenceColor }} />
           Confidence: {confidence}
         </span>
       </div>
-      <div style={{ height: 4, background: '#1E1E2E', borderRadius: 2, position: 'relative' }}>
-        <div style={{
-          position: 'absolute', left: `${lowerPct}%`, width: `${upperPct - lowerPct}%`,
-          height: '100%', background: '#F59E0B', borderRadius: 2,
-          transition: reduced ? 'none' : 'width 0.4s ease',
-        }} />
+      <div className="h-1 bg-[#1E1E2E] rounded-sm relative">
+        <div
+          className="absolute h-full bg-[#F59E0B] rounded-sm"
+          style={{
+            left: `${lowerPct}%`, width: `${upperPct - lowerPct}%`,
+            transition: reduced ? 'none' : 'width 0.4s ease',
+          }}
+        />
       </div>
     </div>
   );
@@ -195,17 +186,11 @@ function ComparisonDrawer({ generatedText, userId }) {
   const scoreColor = score >= 60 ? '#22C55E' : score >= 40 ? '#F59E0B' : '#EF4444';
 
   return (
-    <div style={{ marginTop: 12 }}>
+    <div className="mt-3">
       <button
         onClick={() => setOpen(o => !o)}
         aria-label="Compare with real review"
-        style={{
-          width: '100%', background: 'none', border: '1px solid #1E1E2E',
-          borderRadius: 8, color: '#64748B', fontSize: 12, padding: '8px 0',
-          cursor: 'pointer', transition: 'border-color 0.2s, color 0.2s',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366F1'; e.currentTarget.style.color = '#F8FAFC'; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.color = '#64748B'; }}
+        className="w-full bg-transparent border border-[#1E1E2E] rounded-lg text-[#64748B] text-xs py-2 cursor-pointer transition-all duration-200 hover:border-[#6366F1] hover:text-[#F8FAFC]"
       >
         {open ? 'Hide comparison' : 'Compare with real review'}
       </button>
@@ -215,24 +200,21 @@ function ComparisonDrawer({ generatedText, userId }) {
         maxHeight: open ? 400 : 0,
         transition: reduced ? 'none' : 'max-height 0.35s ease',
       }}>
-        <div style={{ paddingTop: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <div style={{ flex: 1, fontSize: 11, color: '#6366F1', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>AI Generated</div>
-            <span style={{
-              background: `${scoreColor}20`, border: `1px solid ${scoreColor}`,
-              borderRadius: 999, padding: '2px 10px', fontSize: 11, color: scoreColor, fontWeight: 600,
-            }}>
+        <div className="pt-3">
+          <div className="flex items-center gap-2 mb-2.5">
+            <div className="flex-1 text-[11px] text-[#6366F1] font-semibold uppercase tracking-wide">AI Generated</div>
+            <span
+              className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold border"
+              style={{ background: `${scoreColor}20`, borderColor: scoreColor, color: scoreColor }}
+            >
               Similarity: {score}%
             </span>
-            <div style={{ flex: 1, fontSize: 11, color: '#F59E0B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'right' }}>Real Review</div>
+            <div className="flex-1 text-[11px] text-[#F59E0B] font-semibold uppercase tracking-wide text-right">Real Review</div>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div className="flex flex-col sm:flex-row gap-2.5">
             {[generatedText, realReview].map((txt, i) => (
-              <div key={i} style={{
-                flex: 1, background: '#0A0A0F', border: '1px solid #1E1E2E', borderRadius: 8,
-                padding: 12, fontFamily: 'JetBrains Mono, monospace', fontSize: 12,
-                color: '#F8FAFC', lineHeight: 1.6, maxHeight: 200, overflowY: 'auto',
-              }}>
+              <div key={i} className="flex-1 bg-[#0A0A0F] border border-[#1E1E2E] rounded-lg p-3 text-xs text-[#F8FAFC] leading-relaxed max-h-48 overflow-y-auto"
+                style={{ fontFamily: 'JetBrains Mono, monospace' }}>
                 {txt}
               </div>
             ))}
@@ -246,22 +228,18 @@ function ComparisonDrawer({ generatedText, userId }) {
 function OutputPanel({ output, loading, profile, userId }) {
   if (loading) {
     return (
-      <div style={{ background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 20 }}>
-        <div className="skeleton" style={{ width: 80, height: 80, borderRadius: '50%', margin: '0 auto 16px' }} />
-        {[1, 2, 3, 4].map(i => <div key={i} className="skeleton" style={{ height: 12, marginBottom: 8 }} />)}
+      <div className="bg-[#13131A] border border-[#1E1E2E] rounded-xl p-5">
+        <div className="skeleton w-20 h-20 rounded-full mx-auto mb-4" />
+        {[1, 2, 3, 4].map(i => <div key={i} className="skeleton h-3 mb-2" />)}
       </div>
     );
   }
 
   if (!output) {
     return (
-      <div style={{
-        background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 20,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        minHeight: 160, gap: 10,
-      }}>
+      <div className="bg-[#13131A] border border-[#1E1E2E] rounded-xl p-5 flex flex-col items-center justify-center min-h-[160px] gap-2.5">
         <Star size={28} color="#1E1E2E" />
-        <span style={{ color: '#64748B', fontSize: 13 }}>Simulation output will appear here.</span>
+        <span className="text-[#64748B] text-sm">Simulation output will appear here.</span>
       </div>
     );
   }
@@ -269,39 +247,29 @@ function OutputPanel({ output, loading, profile, userId }) {
   const rating = output.predicted_rating ?? 0;
 
   return (
-    <div style={{ background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 20 }}>
-      <div style={{ textAlign: 'center', marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginBottom: 8 }}>
+    <div className="bg-[#13131A] border border-[#1E1E2E] rounded-xl p-5">
+      <div className="text-center mb-4">
+        <div className="flex justify-center gap-1 mb-2">
           {[1, 2, 3, 4, 5].map(i => (
-            <span
-              key={i}
-              style={{
-                fontSize: 24, color: i <= Math.round(rating) ? '#F59E0B' : '#1E1E2E',
-                opacity: 0, animation: reduced ? 'none' : 'fadeSlideIn 0.3s ease forwards',
-                animationDelay: reduced ? '0ms' : `${(i - 1) * 100}ms`,
-              }}
-            >★</span>
+            <span key={i} style={{
+              fontSize: 24, color: i <= Math.round(rating) ? '#F59E0B' : '#1E1E2E',
+              opacity: 0, animation: reduced ? 'none' : 'fadeSlideIn 0.3s ease forwards',
+              animationDelay: reduced ? '0ms' : `${(i - 1) * 100}ms`,
+            }}>★</span>
           ))}
         </div>
-        <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 28, fontWeight: 700, color: '#F8FAFC' }}>
+        <div className="text-3xl font-bold text-[#F8FAFC]" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
           {rating.toFixed(1)} / 5.0
         </div>
-        <div style={{ fontSize: 10, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 4 }}>
-          Predicted Rating
-        </div>
+        <div className="text-[10px] text-[#64748B] uppercase tracking-widest mt-1">Predicted Rating</div>
       </div>
 
-      {/* Feature 2: Confidence Band */}
       <ConfidenceBand predictedRating={rating} profile={profile} />
 
-      <div style={{ height: 1, background: '#1E1E2E', margin: '16px 0' }} />
+      <div className="h-px bg-[#1E1E2E] my-4" />
 
-      <div style={{ fontSize: 10, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
-        Generated Review
-      </div>
+      <div className="text-[10px] text-[#64748B] uppercase tracking-widest mb-2.5">Generated Review</div>
       <TypewriterText text={output.review_text ?? ''} userId={userId} />
-
-      {/* Feature 3: Comparison Drawer */}
       <ComparisonDrawer generatedText={output.review_text ?? ''} userId={userId} />
     </div>
   );
@@ -335,7 +303,6 @@ export default function TaskA() {
     }
   };
 
-  // Feature 8: Shareable URL — auto-load demo on mount
   useEffect(() => {
     const demoParam = searchParams.get('demo');
     if (demoParam && DEMO_USERS[demoParam] && !autoBuilt.current) {
@@ -347,15 +314,10 @@ export default function TaskA() {
     }
   }, []);
 
-  // Feature 9: Reset listener
   useEffect(() => {
     const onReset = () => {
-      setRecords([]);
-      setSelectedDemo('');
-      setProfile(null);
-      setOutput(null);
-      setTargetItem({ name: '', description: '' });
-      setUseLLM(false);
+      setRecords([]); setSelectedDemo(''); setProfile(null); setOutput(null);
+      setTargetItem({ name: '', description: '' }); setUseLLM(false);
       autoBuilt.current = false;
     };
     window.addEventListener('persona:reset', onReset);
@@ -366,8 +328,7 @@ export default function TaskA() {
     const key = e.target.value;
     setSelectedDemo(key);
     if (!key) { setRecords([]); return; }
-    const r = DEMO_USERS[key]?.records ?? [];
-    setRecords(r);
+    setRecords(DEMO_USERS[key]?.records ?? []);
     setDemoChip(true);
     clearTimeout(chipTimer.current);
     chipTimer.current = setTimeout(() => setDemoChip(false), 2000);
@@ -376,157 +337,116 @@ export default function TaskA() {
   useEffect(() => () => clearTimeout(chipTimer.current), []);
 
   const handleSimulate = async () => {
-    setOutputLoading(true);
-    setTraceLoading(true);
+    setOutputLoading(true); setTraceLoading(true);
     try {
       const result = await simulateTaskA({
-        user_id: selectedDemo || 'custom_user',
-        records,
-        target_item: targetItem,
-        use_llm: useLLM,
+        user_id: selectedDemo || 'custom_user', records,
+        target_item: targetItem, use_llm: useLLM,
       });
       setOutput(result);
     } catch (e) {
       showToast(e.message, 'error');
     } finally {
-      setOutputLoading(false);
-      setTraceLoading(false);
+      setOutputLoading(false); setTraceLoading(false);
     }
   };
 
   const canSimulate = profile !== null && targetItem.name.trim() !== '';
 
   return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)',
-      gap: 16, padding: 24, minHeight: 'calc(100vh - 56px)',
-    }}>
-      {/* Left col */}
-      <div style={{ gridColumn: 'span 4' }}>
-        <div style={{ background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 20 }}>
-          <SectionHeader num="01" label="Build Profile" />
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 p-4 md:p-6 min-h-[calc(100vh-56px)]">
 
-          <div style={{ marginBottom: 12 }}>
-            <label htmlFor="demo-select" style={{ fontSize: 12, color: '#64748B', display: 'block', marginBottom: 6 }}>Demo User</label>
-            <select id="demo-select" value={selectedDemo} onChange={handleDemoSelect}>
-              <option value="">Select a demo user</option>
-              {Object.entries(DEMO_USERS).map(([k, v]) => (
-                <option key={k} value={k}>{v.label}</option>
-              ))}
-            </select>
-            {demoChip && (
-              <div style={{
-                marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4,
-                background: 'rgba(34,197,94,0.1)', border: '1px solid #22C55E',
-                borderRadius: 999, padding: '2px 10px', fontSize: 11, color: '#22C55E',
-              }}>
-                Demo data loaded ✓
-              </div>
-            )}
-          </div>
+      {/* Left col — inputs */}
+      <div className="bg-[#13131A] border border-[#1E1E2E] rounded-xl p-5">
+        <SectionHeader num="01" label="Build Profile" />
 
-          <div style={{ marginBottom: 12 }}>
-            <label htmlFor="records-input" style={{ fontSize: 12, color: '#64748B', display: 'block', marginBottom: 6 }}>Review Records (JSON)</label>
-            <textarea
-              id="records-input"
-              rows={7}
-              placeholder='Paste JSON review records here, or select a demo user above.'
-              value={records.length ? JSON.stringify(records, null, 2) : ''}
-              onChange={e => {
-                try { setRecords(JSON.parse(e.target.value)); } catch { /* ignore */ }
-              }}
-              style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, resize: 'vertical', minHeight: 140 }}
-            />
-          </div>
-
-          <button
-            onClick={() => handleBuildProfile(selectedDemo || 'custom_user', records)}
-            disabled={profileLoading}
-            style={{
-              width: '100%', background: '#6366F1', color: '#fff', border: 'none',
-              borderRadius: 8, padding: '10px 0', fontWeight: 600, fontSize: 14,
-              cursor: profileLoading ? 'not-allowed' : 'pointer', marginBottom: 20,
-            }}
-          >
-            {profileLoading
-              ? <div className="skeleton" style={{ height: 18, width: '60%', margin: '0 auto', borderRadius: 4 }} />
-              : 'Build Profile'}
-          </button>
-
-          <div style={{ height: 1, background: '#1E1E2E', marginBottom: 20 }} />
-
-          <SectionHeader num="02" label="Target Item" />
-
-          <div style={{ marginBottom: 10 }}>
-            <label htmlFor="item-name" style={{ fontSize: 12, color: '#64748B', display: 'block', marginBottom: 6 }}>Place Name</label>
-            <input
-              id="item-name"
-              type="text"
-              placeholder="e.g. Chicken Republic Lekki"
-              value={targetItem.name}
-              onChange={e => setTargetItem(t => ({ ...t, name: e.target.value }))}
-            />
-          </div>
-
-          <div style={{ marginBottom: 14 }}>
-            <label htmlFor="item-desc" style={{ fontSize: 12, color: '#64748B', display: 'block', marginBottom: 6 }}>Description (optional)</label>
-            <input
-              id="item-desc"
-              type="text"
-              placeholder="e.g. Fast food, Nigerian cuisine"
-              value={targetItem.description}
-              onChange={e => setTargetItem(t => ({ ...t, description: e.target.value }))}
-            />
-          </div>
-
-          <div style={{ marginBottom: 14 }}>
-            <Toggle on={useLLM} onToggle={() => setUseLLM(v => !v)} label="Use LLM" />
-            {useLLM && (
-              <div style={{
-                marginTop: 8, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)',
-                borderRadius: 8, padding: '6px 10px', fontSize: 12, color: '#F59E0B',
-                animation: reduced ? 'none' : 'fadeSlideIn 0.2s ease',
-              }}>
-                ⚡ LLM mode adds ~3s latency
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={handleSimulate}
-            disabled={!canSimulate || outputLoading}
-            title={!canSimulate ? 'Build a profile first' : ''}
-            style={{
-              width: '100%', background: canSimulate ? '#F59E0B' : '#1E1E2E',
-              color: canSimulate ? '#0A0A0F' : '#64748B',
-              border: 'none', borderRadius: 8, padding: '10px 0',
-              fontWeight: 600, fontSize: 14,
-              cursor: !canSimulate || outputLoading ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {outputLoading
-              ? <div className="skeleton" style={{ height: 18, width: '60%', margin: '0 auto', borderRadius: 4 }} />
-              : 'Simulate Review'}
-          </button>
+        <div className="mb-3">
+          <label htmlFor="demo-select" className="text-xs text-[#64748B] block mb-1.5">Demo User</label>
+          <select id="demo-select" value={selectedDemo} onChange={handleDemoSelect}>
+            <option value="">Select a demo user</option>
+            {Object.entries(DEMO_USERS).map(([k, v]) => (
+              <option key={k} value={k}>{v.label}</option>
+            ))}
+          </select>
+          {demoChip && (
+            <div className="mt-1.5 inline-flex items-center gap-1 bg-[rgba(34,197,94,0.1)] border border-[#22C55E] rounded-full px-2.5 py-0.5 text-[11px] text-[#22C55E]">
+              Demo data loaded ✓
+            </div>
+          )}
         </div>
+
+        <div className="mb-3">
+          <label htmlFor="records-input" className="text-xs text-[#64748B] block mb-1.5">Review Records (JSON)</label>
+          <textarea
+            id="records-input" rows={6}
+            placeholder="Paste JSON review records here, or select a demo user above."
+            value={records.length ? JSON.stringify(records, null, 2) : ''}
+            onChange={e => { try { setRecords(JSON.parse(e.target.value)); } catch { } }}
+            style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, resize: 'vertical', minHeight: 120 }}
+          />
+        </div>
+
+        <button
+          onClick={() => handleBuildProfile(selectedDemo || 'custom_user', records)}
+          disabled={profileLoading}
+          className="w-full bg-[#6366F1] text-white border-none rounded-lg py-2.5 font-semibold text-sm mb-5 cursor-pointer disabled:cursor-not-allowed"
+        >
+          {profileLoading
+            ? <div className="skeleton h-4 w-3/5 mx-auto rounded" />
+            : 'Build Profile'}
+        </button>
+
+        <div className="h-px bg-[#1E1E2E] mb-5" />
+        <SectionHeader num="02" label="Target Item" />
+
+        <div className="mb-2.5">
+          <label htmlFor="item-name" className="text-xs text-[#64748B] block mb-1.5">Place Name</label>
+          <input id="item-name" type="text" placeholder="e.g. Chicken Republic Lekki"
+            value={targetItem.name} onChange={e => setTargetItem(t => ({ ...t, name: e.target.value }))} />
+        </div>
+
+        <div className="mb-3.5">
+          <label htmlFor="item-desc" className="text-xs text-[#64748B] block mb-1.5">Description (optional)</label>
+          <input id="item-desc" type="text" placeholder="e.g. Fast food, Nigerian cuisine"
+            value={targetItem.description} onChange={e => setTargetItem(t => ({ ...t, description: e.target.value }))} />
+        </div>
+
+        <div className="mb-3.5">
+          <Toggle on={useLLM} onToggle={() => setUseLLM(v => !v)} label="Use LLM" />
+          {useLLM && (
+            <div className="mt-2 bg-[rgba(245,158,11,0.08)] border border-[rgba(245,158,11,0.3)] rounded-lg px-2.5 py-1.5 text-xs text-[#F59E0B]"
+              style={{ animation: reduced ? 'none' : 'fadeSlideIn 0.2s ease' }}>
+              ⚡ LLM mode adds ~3s latency
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={handleSimulate}
+          disabled={!canSimulate || outputLoading}
+          title={!canSimulate ? 'Build a profile first' : ''}
+          className="w-full border-none rounded-lg py-2.5 font-semibold text-sm cursor-pointer disabled:cursor-not-allowed"
+          style={{
+            background: canSimulate ? '#F59E0B' : '#1E1E2E',
+            color: canSimulate ? '#0A0A0F' : '#64748B',
+          }}
+        >
+          {outputLoading
+            ? <div className="skeleton h-4 w-3/5 mx-auto rounded" />
+            : 'Simulate Review'}
+        </button>
       </div>
 
-      {/* Center col */}
-      <div style={{ gridColumn: 'span 4' }}>
+      {/* Center col — profile */}
+      <div>
         <ProfilePanel profile={profile} loading={profileLoading} pageContext="task-a" />
       </div>
 
-      {/* Right col */}
-      <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Right col — trace + fidelity + output */}
+      <div className="flex flex-col gap-4">
         <TracePanel trace={output?.reasoning ?? null} mode="text" loading={traceLoading} />
-        {/* Feature 4: Fidelity Dashboard */}
         <FidelityDashboard profile={profile} output={output} />
-        <OutputPanel
-          output={output}
-          loading={outputLoading}
-          profile={profile}
-          userId={selectedDemo || 'custom_user'}
-        />
+        <OutputPanel output={output} loading={outputLoading} profile={profile} userId={selectedDemo || 'custom_user'} />
       </div>
     </div>
   );

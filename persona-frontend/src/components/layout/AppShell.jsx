@@ -13,17 +13,14 @@ export default function AppShell() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0A0A0F' }}>
-      <nav style={{
-        position: 'fixed', top: 0, left: 0, right: 0, height: 56, zIndex: 100,
-        background: '#0A0A0F', borderBottom: '1px solid #1E1E2E',
-        display: 'flex', alignItems: 'center', padding: '0 24px', gap: 24,
-      }}>
+    <div className="min-h-screen bg-[#0A0A0F]">
+      <nav className="fixed top-0 left-0 right-0 h-14 z-50 bg-[#0A0A0F] border-b border-[#1E1E2E] flex items-center px-4 md:px-6 gap-4">
+
         {/* Logo */}
         <button
           onClick={() => navigate('/')}
           aria-label="Go to home"
-          style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+          className="flex items-center gap-2 bg-transparent border-none cursor-pointer shrink-0"
         >
           <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
             <circle cx="14" cy="14" r="13" stroke="#F59E0B" strokeWidth="1.5" />
@@ -34,25 +31,24 @@ export default function AppShell() {
             <line x1="14" y1="13" x2="20" y2="18" stroke="#F59E0B" strokeWidth="1" opacity="0.5" />
             <line x1="8" y1="18" x2="20" y2="18" stroke="#F59E0B" strokeWidth="1" opacity="0.3" />
           </svg>
-          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 16, color: '#F8FAFC', letterSpacing: '0.08em' }}>
+          <span className="font-bold text-base text-[#F8FAFC] tracking-widest hidden sm:inline" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             PERSONA
           </span>
         </button>
 
         {/* Center nav */}
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: 8 }}>
+        <div className="flex-1 flex justify-center gap-1 md:gap-2">
           {[{ to: '/task-a', label: 'Task A' }, { to: '/task-b', label: 'Task B' }].map(({ to, label }) => (
             <NavLink
               key={to}
               to={to}
-              style={({ isActive }) => ({
-                padding: '6px 18px', borderRadius: 999, fontSize: 14, fontWeight: 600,
-                textDecoration: 'none',
-                color: isActive ? '#F59E0B' : '#64748B',
-                background: isActive ? 'rgba(245,158,11,0.08)' : 'transparent',
-                boxShadow: isActive ? '0 2px 0 #F59E0B' : 'none',
-                transition: 'all 0.2s',
-              })}
+              className={({ isActive }) =>
+                `px-3 md:px-5 py-1.5 rounded-full text-sm font-semibold no-underline transition-all duration-200 ${
+                  isActive
+                    ? 'text-[#F59E0B] bg-[rgba(245,158,11,0.08)] shadow-[0_2px_0_#F59E0B]'
+                    : 'text-[#64748B] bg-transparent'
+                }`
+              }
             >
               {label}
             </NavLink>
@@ -60,46 +56,32 @@ export default function AppShell() {
         </div>
 
         {/* Right */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
           <NavLink
             to="/about"
-            style={({ isActive }) => ({
-              fontSize: 14, textDecoration: 'none',
-              color: isActive ? '#F8FAFC' : '#64748B',
-              transition: 'color 0.2s',
-            })}
+            className={({ isActive }) =>
+              `text-sm no-underline transition-colors duration-200 hidden sm:inline ${isActive ? 'text-[#F8FAFC]' : 'text-[#64748B]'}`
+            }
           >
             About
           </NavLink>
 
-          {/* Reset Demo button */}
           <button
             onClick={handleReset}
             aria-label="Reset demo"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              background: 'none', border: '1px solid #1E1E2E', borderRadius: 8,
-              color: '#64748B', fontSize: 12, padding: '6px 12px', cursor: 'pointer',
-              transition: 'border-color 0.2s, color 0.2s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366F1'; e.currentTarget.style.color = '#F8FAFC'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.color = '#64748B'; }}
+            className="hidden md:flex items-center gap-1.5 bg-transparent border border-[#1E1E2E] rounded-lg text-[#64748B] text-xs px-3 py-1.5 cursor-pointer transition-all duration-200 hover:border-[#6366F1] hover:text-[#F8FAFC]"
           >
             <RotateCcw size={12} />
             Reset Demo
           </button>
 
-          <span style={{
-            background: '#13131A', border: '1px solid #1E1E2E',
-            borderRadius: 999, padding: '3px 10px',
-            fontSize: 11, color: '#F59E0B', fontWeight: 600, letterSpacing: '0.04em',
-          }}>
+          <span className="bg-[#13131A] border border-[#1E1E2E] rounded-full px-2.5 py-1 text-[10px] md:text-[11px] text-[#F59E0B] font-semibold tracking-wide whitespace-nowrap">
             DSN x BCT · Hackathon 3.0
           </span>
         </div>
       </nav>
 
-      <div style={{ paddingTop: 56, minHeight: 'calc(100vh - 56px)' }}>
+      <div className="pt-14 min-h-[calc(100vh-56px)]">
         <Outlet />
       </div>
     </div>

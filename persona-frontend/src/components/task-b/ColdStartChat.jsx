@@ -48,64 +48,59 @@ export default function ColdStartChat({ onProfileBuilt }) {
 
   if (loading) {
     return (
-      <div style={{ padding: 16 }}>
-        {[1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 14, marginBottom: 10, borderRadius: 6 }} />)}
+      <div className="p-4">
+        {[1, 2, 3].map(i => <div key={i} className="skeleton h-3.5 mb-2.5 rounded" />)}
       </div>
     );
   }
 
   if (done) {
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
-        <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
-        <div style={{ color: '#22C55E', fontWeight: 700, fontSize: 16 }}>Profile built! ✓</div>
+      <div className="p-6 text-center">
+        <div className="text-3xl mb-2">✅</div>
+        <div className="text-[#22C55E] font-bold text-base">Profile built! ✓</div>
       </div>
     );
   }
 
   if (building) {
     return (
-      <div style={{ padding: 16 }}>
-        <div style={{ color: '#64748B', fontSize: 13, marginBottom: 12 }}>Building your profile...</div>
-        {[1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 12, marginBottom: 8, borderRadius: 6 }} />)}
+      <div className="p-4">
+        <div className="text-[#64748B] text-sm mb-3">Building your profile...</div>
+        {[1, 2, 3].map(i => <div key={i} className="skeleton h-3 mb-2 rounded" />)}
       </div>
     );
   }
 
   if (!questions.length) {
-    return <div style={{ color: '#64748B', fontSize: 13, padding: 16 }}>No questions available.</div>;
+    return <div className="text-[#64748B] text-sm p-4">No questions available.</div>;
   }
 
   const q = questions[current];
-  const progress = ((current) / questions.length) * 100;
+  const progress = (current / questions.length) * 100;
 
   return (
-    <div style={{ padding: 4 }}>
-      {/* Progress */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontSize: 11, color: '#64748B' }}>Question {current + 1} of {questions.length}</span>
+    <div className="p-1">
+      <div className="mb-4">
+        <div className="flex justify-between mb-1.5">
+          <span className="text-[11px] text-[#64748B]">Question {current + 1} of {questions.length}</span>
         </div>
-        <div style={{ height: 4, background: '#1E1E2E', borderRadius: 2, overflow: 'hidden' }}>
-          <div style={{
-            height: '100%', background: '#6366F1', borderRadius: 2,
-            width: `${progress}%`, transition: reduced ? 'none' : 'width 0.4s ease',
-          }} />
+        <div className="h-1 bg-[#1E1E2E] rounded-sm overflow-hidden">
+          <div
+            className="h-full bg-[#6366F1] rounded-sm"
+            style={{ width: `${progress}%`, transition: reduced ? 'none' : 'width 0.4s ease' }}
+          />
         </div>
       </div>
 
-      {/* Bot bubble */}
-      <div style={{
-        background: '#13131A', border: '1px solid #1E1E2E',
-        borderRadius: '0 12px 12px 12px', padding: '12px 14px',
-        fontSize: 14, color: '#F8FAFC', marginBottom: 14,
-        animation: reduced ? 'none' : 'fadeSlideIn 0.3s ease',
-      }}>
+      <div
+        className="bg-[#13131A] border border-[#1E1E2E] rounded-tr-xl rounded-br-xl rounded-bl-xl px-3.5 py-3 text-sm text-[#F8FAFC] mb-3.5"
+        style={{ animation: reduced ? 'none' : 'fadeSlideIn 0.3s ease' }}
+      >
         {q.question}
       </div>
 
-      {/* Options */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      <div className="flex flex-wrap gap-2">
         {q.options.map(opt => {
           const isSelected = selected === opt;
           return (
@@ -113,13 +108,11 @@ export default function ColdStartChat({ onProfileBuilt }) {
               key={opt}
               onClick={() => handleSelect(opt)}
               disabled={selected !== null}
+              className="rounded-full px-4 py-2 text-sm flex items-center gap-1.5 cursor-pointer disabled:cursor-default"
               style={{
-                borderRadius: 999, padding: '8px 16px', fontSize: 13,
                 border: `1px solid ${isSelected ? '#6366F1' : '#1E1E2E'}`,
                 background: isSelected ? '#6366F1' : 'transparent',
                 color: isSelected ? '#fff' : '#F8FAFC',
-                cursor: selected !== null ? 'default' : 'pointer',
-                display: 'flex', alignItems: 'center', gap: 6,
                 transition: reduced ? 'none' : 'all 0.2s',
               }}
             >

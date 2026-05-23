@@ -5,11 +5,7 @@ const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function FlowNode({ label, color = '#F8FAFC' }) {
   return (
-    <div style={{
-      background: '#13131A', border: '1px solid #1E1E2E',
-      borderRadius: 999, padding: '6px 16px',
-      fontSize: 12, color, fontWeight: 600,
-    }}>
+    <div className="bg-[#13131A] border border-[#1E1E2E] rounded-full px-4 py-1.5 text-xs font-semibold" style={{ color }}>
       {label}
     </div>
   );
@@ -17,14 +13,15 @@ function FlowNode({ label, color = '#F8FAFC' }) {
 
 function FlowArrow({ delay }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-      <div style={{
-        width: 40, height: 1,
-        background: 'linear-gradient(90deg, #1E1E2E, #6366F1)',
-        opacity: 0.6,
-        animation: reduced ? 'none' : `pulse-opacity 2s ease-in-out ${delay}ms infinite`,
-      }} />
-      <div style={{ color: '#6366F1', fontSize: 14, opacity: 0.6 }}>›</div>
+    <div className="flex items-center">
+      <div
+        className="w-10 h-px opacity-60"
+        style={{
+          background: 'linear-gradient(90deg, #1E1E2E, #6366F1)',
+          animation: reduced ? 'none' : `pulse-opacity 2s ease-in-out ${delay}ms infinite`,
+        }}
+      />
+      <div className="text-[#6366F1] text-sm opacity-60">›</div>
     </div>
   );
 }
@@ -33,121 +30,78 @@ export default function Landing() {
   const navigate = useNavigate();
 
   return (
-    <div style={{
-      minHeight: 'calc(100vh - 56px)',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      padding: '48px 24px',
-    }}>
+    <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center px-4 sm:px-6 py-12">
+
       {/* Hero */}
-      <div style={{ textAlign: 'center', maxWidth: 680 }}>
-        <h1 style={{
-          fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 700,
-          letterSpacing: '-0.03em', lineHeight: 1.1, margin: '0 0 8px',
-          color: '#F8FAFC',
-        }}>
+      <div className="text-center max-w-2xl w-full px-2">
+        <h1 className="font-bold tracking-tight leading-tight mb-2 text-[#F8FAFC]" style={{ fontSize: 'clamp(28px, 5vw, 52px)' }}>
           Understand who your users are.
         </h1>
-        <h1 style={{
-          fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 700,
-          letterSpacing: '-0.03em', lineHeight: 1.1, margin: '0 0 24px',
-          color: '#F59E0B',
-        }}>
+        <h1 className="font-bold tracking-tight leading-tight mb-6 text-[#F59E0B]" style={{ fontSize: 'clamp(28px, 5vw, 52px)' }}>
           Before they tell you.
         </h1>
-        <p style={{ fontSize: 17, color: '#64748B', lineHeight: 1.7, maxWidth: 560, margin: '0 auto' }}>
+        <p className="text-[#64748B] leading-relaxed max-w-xl mx-auto text-sm sm:text-base md:text-lg">
           Persona builds psychological profiles from review history — predicting ratings, generating authentic reviews, and recommending places that actually fit.
         </p>
       </div>
 
-      {/* Cards */}
-      <div style={{ display: 'flex', gap: 24, marginTop: 48, width: '100%', maxWidth: 760, flexWrap: 'wrap' }}>
+      {/* Task cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-12 w-full max-w-3xl">
         {/* Task A */}
-        <div style={{
-          flex: 1, minWidth: 280,
-          background: '#13131A', border: '1px solid #1E1E2E',
-          borderRadius: 16, padding: 32,
-          display: 'flex', flexDirection: 'column', gap: 16,
-        }}>
+        <div className="bg-[#13131A] border border-[#1E1E2E] rounded-2xl p-6 md:p-8 flex flex-col gap-4">
           <div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#F8FAFC', marginBottom: 8 }}>Review Simulation</div>
-            <div style={{ fontSize: 14, color: '#64748B', lineHeight: 1.6 }}>
+            <div className="text-lg md:text-xl font-bold text-[#F8FAFC] mb-2">Review Simulation</div>
+            <div className="text-sm text-[#64748B] leading-relaxed">
               Predict how a user would rate and review any place based on their psychological profile.
             </div>
           </div>
           <button
             onClick={() => navigate('/task-a')}
-            style={{
-              width: '100%', background: '#F59E0B', color: '#0A0A0F',
-              border: 'none', borderRadius: 8, padding: '11px 0',
-              fontWeight: 700, fontSize: 14, cursor: 'pointer',
-              marginTop: 'auto',
-              transition: reduced ? 'none' : 'opacity 0.2s',
-            }}
-            onMouseEnter={e => { if (!reduced) e.target.style.opacity = '0.85'; }}
-            onMouseLeave={e => { e.target.style.opacity = '1'; }}
+            className="w-full mt-auto bg-[#F59E0B] text-[#0A0A0F] border-none rounded-lg py-3 font-bold text-sm cursor-pointer transition-opacity duration-200 hover:opacity-85"
           >
             Try Task A →
           </button>
         </div>
 
         {/* Task B */}
-        <div style={{
-          flex: 1, minWidth: 280,
-          background: '#13131A', border: '1px solid #1E1E2E',
-          borderRadius: 16, padding: 32,
-          display: 'flex', flexDirection: 'column', gap: 16,
-        }}>
+        <div className="bg-[#13131A] border border-[#1E1E2E] rounded-2xl p-6 md:p-8 flex flex-col gap-4">
           <div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#F8FAFC', marginBottom: 8 }}>Smart Recommendations</div>
-            <div style={{ fontSize: 14, color: '#64748B', lineHeight: 1.6 }}>
+            <div className="text-lg md:text-xl font-bold text-[#F8FAFC] mb-2">Smart Recommendations</div>
+            <div className="text-sm text-[#64748B] leading-relaxed">
               Find places that truly match a user's taste, writing style, and cultural context.
             </div>
           </div>
           <button
             onClick={() => navigate('/task-b')}
-            style={{
-              width: '100%', background: '#6366F1', color: '#fff',
-              border: 'none', borderRadius: 8, padding: '11px 0',
-              fontWeight: 700, fontSize: 14, cursor: 'pointer',
-              marginTop: 'auto',
-              transition: reduced ? 'none' : 'opacity 0.2s',
-            }}
-            onMouseEnter={e => { if (!reduced) e.target.style.opacity = '0.85'; }}
-            onMouseLeave={e => { e.target.style.opacity = '1'; }}
+            className="w-full mt-auto bg-[#6366F1] text-white border-none rounded-lg py-3 font-bold text-sm cursor-pointer transition-opacity duration-200 hover:opacity-85"
           >
             Try Task B →
           </button>
         </div>
       </div>
 
-      {/* Feature 10B: Why This Matters strip */}
-      <div style={{ width: '100%', maxWidth: 800, marginTop: 32, display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
+      {/* Why This Matters */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 w-full max-w-3xl">
         {[
-          { icon: <Brain size={22} color="#6366F1" />, title: 'Behaviour', body: 'We model how users rate, write, and decide', accent: '#6366F1' },
-          { icon: <Globe size={22} color="#F59E0B" />, title: 'Context', body: 'We detect cultural register and linguistic identity', accent: '#F59E0B' },
-          { icon: <Zap size={22} color="#6366F1" />, title: 'Prediction', body: 'We simulate what they\'d say before they say it', accent: '#6366F1' },
+          { icon: <Brain size={20} color="#6366F1" />, title: 'Behaviour', body: 'We model how users rate, write, and decide', accent: '#6366F1' },
+          { icon: <Globe size={20} color="#F59E0B" />, title: 'Context', body: 'We detect cultural register and linguistic identity', accent: '#F59E0B' },
+          { icon: <Zap size={20} color="#6366F1" />, title: 'Prediction', body: "We simulate what they'd say before they say it", accent: '#6366F1' },
         ].map(({ icon, title, body, accent }) => (
-          <div key={title} style={{
-            flex: 1, minWidth: 200, textAlign: 'center',
-            background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: '20px 16px',
-          }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: 10,
-              background: `${accent}18`, border: `1px solid ${accent}30`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 12px',
-            }}>
+          <div key={title} className="text-center bg-[#13131A] border border-[#1E1E2E] rounded-xl p-4 md:p-5">
+            <div
+              className="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3"
+              style={{ background: `${accent}18`, border: `1px solid ${accent}30` }}
+            >
               {icon}
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#F8FAFC', marginBottom: 6 }}>{title}</div>
-            <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.6 }}>"{body}"</div>
+            <div className="text-sm font-bold text-[#F8FAFC] mb-1">{title}</div>
+            <div className="text-xs text-[#64748B] leading-relaxed">"{body}"</div>
           </div>
         ))}
       </div>
 
       {/* Flow diagram */}
-      <div style={{ marginTop: 48, display: 'flex', alignItems: 'center', gap: 0 }}>
+      <div className="mt-12 flex items-center flex-wrap justify-center gap-0">
         <FlowNode label="Your Reviews" color="#64748B" />
         <FlowArrow delay={0} />
         <FlowNode label="Persona Engine" color="#F59E0B" />

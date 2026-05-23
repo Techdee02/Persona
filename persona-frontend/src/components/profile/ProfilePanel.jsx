@@ -3,22 +3,15 @@ import { TrendingUp, TrendingDown, Minus, User, Share2 } from 'lucide-react';
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function Skeleton({ w = '100%', h = 16, style = {} }) {
-  return <div className="skeleton" style={{ width: w, height: h, borderRadius: 6, ...style }} />;
-}
-
 function Stars({ value }) {
   return (
-    <div style={{ display: 'flex', gap: 2 }}>
+    <div className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map(i => {
         const fill = Math.min(1, Math.max(0, value - (i - 1)));
         return (
-          <div key={i} style={{ position: 'relative', width: 16, height: 16 }}>
-            <span style={{ color: '#1E1E2E', fontSize: 16, lineHeight: 1 }}>★</span>
-            <span style={{
-              position: 'absolute', top: 0, left: 0, overflow: 'hidden',
-              width: `${fill * 100}%`, color: '#F59E0B', fontSize: 16, lineHeight: 1,
-            }}>★</span>
+          <div key={i} className="relative w-4 h-4">
+            <span className="text-[#1E1E2E] text-base leading-none">★</span>
+            <span className="absolute top-0 left-0 overflow-hidden text-[#F59E0B] text-base leading-none" style={{ width: `${fill * 100}%` }}>★</span>
           </div>
         );
       })}
@@ -42,18 +35,19 @@ function ArcGauge({ value }) {
 function ValueBar({ label, value, max, dominant, delay }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
   return (
-    <div style={{ marginBottom: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ fontSize: 12, color: '#64748B', textTransform: 'capitalize' }}>{label}</span>
-        <span style={{ fontSize: 12, color: '#64748B' }}>{value}</span>
+    <div className="mb-2">
+      <div className="flex justify-between mb-1">
+        <span className="text-xs text-[#64748B] capitalize">{label}</span>
+        <span className="text-xs text-[#64748B]">{value}</span>
       </div>
-      <div style={{ height: 6, background: '#1E1E2E', borderRadius: 3, overflow: 'hidden' }}>
-        <div style={{
-          height: '100%', borderRadius: 3,
-          background: dominant ? '#F59E0B' : 'rgba(99,102,241,0.6)',
-          width: reduced ? `${pct}%` : '0%',
-          transition: reduced ? 'none' : `width 0.6s ease ${delay}ms`,
-        }}
+      <div className="h-1.5 bg-[#1E1E2E] rounded-sm overflow-hidden">
+        <div
+          className="h-full rounded-sm"
+          style={{
+            background: dominant ? '#F59E0B' : 'rgba(99,102,241,0.6)',
+            width: reduced ? `${pct}%` : '0%',
+            transition: reduced ? 'none' : `width 0.6s ease ${delay}ms`,
+          }}
           ref={el => { if (el && !reduced) setTimeout(() => { el.style.width = `${pct}%`; }, 50); }}
         />
       </div>
@@ -68,11 +62,8 @@ function buildPersonaNarrative(profile) {
   const keywords = Object.entries(profile.value_keywords ?? {}).sort((a, b) => b[1] - a[1]);
   const topKeyword = keywords[0]?.[0] ?? 'quality';
   const delta = profile.trajectory?.delta_rating ?? 0;
-  const trajectory = delta > 0.1
-    ? 'has become increasingly positive over time'
-    : delta < -0.1
-    ? 'has become more critical over time'
-    : 'has been consistent over time';
+  const trajectory = delta > 0.1 ? 'has become increasingly positive over time'
+    : delta < -0.1 ? 'has become more critical over time' : 'has been consistent over time';
   const cultural = profile.cultural_signals?.code_switching_detected ? ' who writes in Nigerian English' : '';
   const detail = (profile.stylometry?.avg_word_count ?? 0) > 50 ? 'detailed' : 'concise';
   return `${name} is ${raterType}${cultural} who cares deeply about ${topKeyword} quality. They write ${detail} reviews and ${trajectory}.`;
@@ -92,28 +83,24 @@ export default function ProfilePanel({ profile, loading, primaryDomain = null, q
 
   if (loading) {
     return (
-      <div style={{ background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 20 }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20 }}>
-          <Skeleton w={60} h={60} style={{ borderRadius: '50%' }} />
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Skeleton w="60%" h={28} />
-            <Skeleton w="40%" h={14} />
+      <div className="bg-[#13131A] border border-[#1E1E2E] rounded-xl p-5">
+        <div className="flex gap-3 items-center mb-5">
+          <div className="skeleton w-14 h-14 rounded-full shrink-0" />
+          <div className="flex-1 flex flex-col gap-2">
+            <div className="skeleton h-7 w-3/5" />
+            <div className="skeleton h-3.5 w-2/5" />
           </div>
         </div>
-        {[1, 2, 3, 4].map(i => <Skeleton key={i} h={12} style={{ marginBottom: 10 }} />)}
+        {[1, 2, 3, 4].map(i => <div key={i} className="skeleton h-3 mb-2.5" />)}
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div style={{
-        background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 20,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        minHeight: 200, gap: 12,
-      }}>
+      <div className="bg-[#13131A] border border-[#1E1E2E] rounded-xl p-5 flex flex-col items-center justify-center min-h-[200px] gap-3">
         <User size={32} color="#1E1E2E" />
-        <span style={{ color: '#64748B', fontSize: 14, textAlign: 'center' }}>Profile will appear here after building.</span>
+        <span className="text-[#64748B] text-sm text-center">Profile will appear here after building.</span>
       </div>
     );
   }
@@ -121,99 +108,82 @@ export default function ProfilePanel({ profile, loading, primaryDomain = null, q
   const { rating_stats, stylometry, value_keywords, trajectory, cultural_signals, user_id } = profile;
   const mean = rating_stats?.mean ?? 0;
   const isColdStart = rating_stats?.count === 0;
-
   const avatarBg = mean >= 4.0 ? '#22C55E' : mean >= 3.0 ? '#F59E0B' : '#EF4444';
   const raterLabel = mean >= 4.0 ? 'Generous Rater' : mean >= 3.0 ? 'Neutral Rater' : 'Harsh Rater';
   const raterColor = mean >= 4.0 ? '#22C55E' : mean >= 3.0 ? '#F59E0B' : '#EF4444';
-
   const initials = user_id ? user_id.slice(0, 2).toUpperCase() : 'U';
-
   const keywords = Object.entries(value_keywords ?? {}).slice(0, 4);
   const maxKw = Math.max(...keywords.map(([, v]) => v), 1);
   const dominantKw = keywords.reduce((a, b) => (b[1] > a[1] ? b : a), ['', 0])[0];
-
   const delta = trajectory?.delta_rating ?? 0;
   const TrendIcon = delta > 0.1 ? TrendingUp : delta < -0.1 ? TrendingDown : Minus;
   const trendColor = delta > 0.1 ? '#22C55E' : delta < -0.1 ? '#EF4444' : '#F59E0B';
-
   const showCultural = cultural_signals?.code_switching_detected || (cultural_signals?.nigerian_english_index ?? 0) > 0;
   const narrative = buildPersonaNarrative(profile);
-
   const isCrossDomain = pageContext === 'task-b' && primaryDomain
     && NON_FOOD_KEYWORDS.some(k => queryText.toLowerCase().includes(k));
 
   return (
-    <div key={user_id} style={{ background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 20, position: 'relative' }}>
+    <div key={user_id} className="bg-[#13131A] border border-[#1E1E2E] rounded-xl p-5 flex flex-col gap-5 relative">
 
       {/* Share button */}
-      <div style={{ position: 'absolute', top: 16, right: 16 }}>
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={handleShare}
-            aria-label="Copy shareable profile link"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center' }}
-          >
+      <div className="absolute top-4 right-4">
+        <div className="relative">
+          <button onClick={handleShare} aria-label="Copy shareable profile link"
+            className="bg-transparent border-none cursor-pointer text-[#64748B] flex items-center">
             <Share2 size={14} />
           </button>
           {shareCopied && (
-            <span style={{
-              position: 'absolute', top: -28, right: 0, whiteSpace: 'nowrap',
-              background: '#13131A', border: '1px solid #22C55E', borderRadius: 6,
-              padding: '2px 8px', fontSize: 11, color: '#22C55E',
-            }}>
+            <span className="absolute -top-7 right-0 whitespace-nowrap bg-[#13131A] border border-[#22C55E] rounded-md px-2 py-0.5 text-[11px] text-[#22C55E]">
               Link copied! ✓
             </span>
           )}
         </div>
       </div>
 
-      {/* Feature 1: Persona Identity Card */}
-      <div style={{
-        background: '#1A1A2E', borderLeft: '4px solid #F59E0B', borderRadius: '0 8px 8px 0',
-        padding: '10px 14px', display: 'flex', gap: 10, alignItems: 'flex-start',
-        opacity: 0,
-        animation: reduced ? 'none' : 'fadeSlideIn 0.4s ease forwards',
-      }}>
-        <User size={16} color="#F59E0B" style={{ flexShrink: 0, marginTop: 2 }} />
+      {/* Persona Identity Card */}
+      <div
+        className="bg-[#1A1A2E] rounded-r-lg flex gap-2.5 items-start p-2.5"
+        style={{
+          borderLeft: '4px solid #F59E0B',
+          opacity: 0,
+          animation: reduced ? 'none' : 'fadeSlideIn 0.4s ease forwards',
+        }}
+      >
+        <User size={16} color="#F59E0B" className="shrink-0 mt-0.5" />
         <div>
-          <div style={{ fontSize: 9, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 4 }}>Persona</div>
-          <p style={{ margin: 0, fontSize: 12, color: '#F8FAFC', fontFamily: "'Space Grotesk', sans-serif", fontStyle: 'italic', lineHeight: 1.5 }}>
+          <div className="text-[9px] text-[#64748B] uppercase tracking-widest mb-1">Persona</div>
+          <p className="m-0 text-xs text-[#F8FAFC] italic leading-relaxed" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             {narrative}
           </p>
         </div>
       </div>
 
       {/* Identity */}
-      <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-        <div style={{
-          width: 60, height: 60, borderRadius: '50%', background: avatarBg,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 20, fontWeight: 700, color: '#0A0A0F', flexShrink: 0,
-        }}>
+      <div className="flex gap-3.5 items-center">
+        <div
+          className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold text-[#0A0A0F] shrink-0"
+          style={{ background: avatarBg }}
+        >
           {initials}
         </div>
         <div>
-          <div style={{ fontSize: 32, fontWeight: 700, color: '#F8FAFC', lineHeight: 1 }}>{mean.toFixed(1)}</div>
+          <div className="text-3xl font-bold text-[#F8FAFC] leading-none">{mean.toFixed(1)}</div>
           <Stars value={mean} />
-          <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
-            <span style={{ background: `${raterColor}20`, color: raterColor, borderRadius: 999, padding: '2px 10px', fontSize: 11, fontWeight: 600 }}>
+          <div className="flex gap-2 mt-1.5 flex-wrap">
+            <span className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold" style={{ background: `${raterColor}20`, color: raterColor }}>
               {raterLabel}
             </span>
             {isColdStart
-              ? <span style={{ background: 'rgba(99,102,241,0.15)', color: '#6366F1', borderRadius: 999, padding: '2px 10px', fontSize: 11, fontWeight: 600 }}>Cold-start profile</span>
-              : <span style={{ color: '#64748B', fontSize: 12 }}>Based on {rating_stats.count} reviews</span>
+              ? <span className="bg-[rgba(99,102,241,0.15)] text-[#6366F1] rounded-full px-2.5 py-0.5 text-[11px] font-semibold">Cold-start profile</span>
+              : <span className="text-[#64748B] text-xs">Based on {rating_stats.count} reviews</span>
             }
           </div>
-          {/* Feature 6: Cross-Domain Badge */}
           {isCrossDomain && (
-            <div style={{ marginTop: 6 }}>
+            <div className="mt-1.5">
               <span
                 title={`Transferring ${primaryDomain} preference axes to new domain`}
-                style={{
-                  background: 'rgba(245,158,11,0.1)', border: '1px solid #F59E0B',
-                  borderRadius: 999, padding: '2px 10px', fontSize: 11, color: '#F59E0B',
-                  cursor: 'default',
-                }}
+                className="bg-[rgba(245,158,11,0.1)] border border-[#F59E0B] rounded-full px-2.5 py-0.5 text-[11px] text-[#F59E0B] cursor-default"
               >
                 ⚡ Cross-domain inference
               </span>
@@ -225,7 +195,7 @@ export default function ProfilePanel({ profile, loading, primaryDomain = null, q
       {/* Value Keywords */}
       {keywords.length > 0 && (
         <div>
-          <div style={{ fontSize: 10, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>What they care about</div>
+          <div className="text-[10px] text-[#64748B] uppercase tracking-widest mb-2.5">What they care about</div>
           {keywords.map(([kw, val], i) => (
             <ValueBar key={kw} label={kw} value={val} max={maxKw} dominant={kw === dominantKw} delay={i * 100} />
           ))}
@@ -234,20 +204,20 @@ export default function ProfilePanel({ profile, loading, primaryDomain = null, q
 
       {/* Writing Style */}
       <div>
-        <div style={{ fontSize: 10, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Writing Style</div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1, background: '#0A0A0F', borderRadius: 8, padding: '10px 12px', border: '1px solid #1E1E2E' }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#F8FAFC', fontFamily: 'JetBrains Mono, monospace' }}>
+        <div className="text-[10px] text-[#64748B] uppercase tracking-widest mb-2.5">Writing Style</div>
+        <div className="flex gap-2.5">
+          <div className="flex-1 bg-[#0A0A0F] rounded-lg p-2.5 border border-[#1E1E2E]">
+            <div className="text-lg font-bold text-[#F8FAFC]" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
               ~{Math.round(stylometry?.avg_word_count ?? 0)}
             </div>
-            <div style={{ fontSize: 11, color: '#64748B' }}>avg per review</div>
+            <div className="text-[11px] text-[#64748B]">avg per review</div>
           </div>
-          <div style={{ flex: 1, background: '#0A0A0F', borderRadius: 8, padding: '10px 12px', border: '1px solid #1E1E2E', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div className="flex-1 bg-[#0A0A0F] rounded-lg p-2.5 border border-[#1E1E2E] flex flex-col items-center">
             <ArcGauge value={stylometry?.vocab_richness ?? 0} />
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#F8FAFC', fontFamily: 'JetBrains Mono, monospace', marginTop: -4 }}>
+            <div className="text-lg font-bold text-[#F8FAFC] -mt-1" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
               {(stylometry?.vocab_richness ?? 0).toFixed(2)}
             </div>
-            <div style={{ fontSize: 11, color: '#64748B' }}>vocab richness</div>
+            <div className="text-[11px] text-[#64748B]">vocab richness</div>
           </div>
         </div>
       </div>
@@ -255,56 +225,47 @@ export default function ProfilePanel({ profile, loading, primaryDomain = null, q
       {/* Trajectory */}
       {trajectory && (
         <div>
-          <div style={{ fontSize: 10, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Trajectory</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="text-[10px] text-[#64748B] uppercase tracking-widest mb-2.5">Trajectory</div>
+          <div className="flex items-center gap-2">
             <TrendIcon size={16} color={trendColor} />
-            <span style={{ color: trendColor, fontWeight: 600, fontSize: 14, fontFamily: 'JetBrains Mono, monospace' }}>
+            <span className="font-semibold text-sm" style={{ color: trendColor, fontFamily: 'JetBrains Mono, monospace' }}>
               {delta > 0 ? '+' : ''}{delta.toFixed(2)}
             </span>
-            <span style={{ color: '#64748B', fontSize: 13 }}>rating trend</span>
+            <span className="text-[#64748B] text-sm">rating trend</span>
           </div>
-          <div style={{ color: '#64748B', fontSize: 12, marginTop: 4 }}>
+          <div className="text-[#64748B] text-xs mt-1">
             {(trajectory.delta_review_length ?? 0) > 0 ? 'Reviews getting longer' : 'Reviews getting shorter'}
           </div>
         </div>
       )}
 
-      {/* Cultural Signals — Feature 11: Nigerian Bonus Callout */}
+      {/* Cultural Signals */}
       {showCultural && (
-        <div style={{
-          border: '1px solid #22C55E', borderRadius: 10, padding: '12px 14px',
-          background: '#0D1F12',
-          boxShadow: reduced ? '0 0 12px rgba(34,197,94,0.15)' : undefined,
-          animation: reduced ? 'none' : 'pulse-glow 2s ease-in-out infinite',
-          display: 'flex', gap: 12, alignItems: 'flex-start', position: 'relative',
-        }}>
+        <div
+          className="border border-[#22C55E] rounded-xl p-3.5 bg-[#0D1F12] flex gap-3 items-start relative"
+          style={{ animation: reduced ? 'none' : 'pulse-glow 2s ease-in-out infinite' }}
+        >
           {cultural_signals?.code_switching_detected && (
-            <span style={{
-              position: 'absolute', top: 10, right: 10,
-              background: 'transparent', border: '1px solid #22C55E',
-              borderRadius: 999, padding: '1px 8px', fontSize: 10, color: '#22C55E',
-            }}>
+            <span className="absolute top-2.5 right-2.5 border border-[#22C55E] rounded-full px-2 py-0.5 text-[10px] text-[#22C55E]">
               +Bonus Signal
             </span>
           )}
-          <span style={{ fontSize: 24 }}>🇳🇬</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ color: '#22C55E', fontWeight: 700, fontSize: 13 }}>Nigerian English detected</div>
-            <div style={{ color: '#64748B', fontSize: 12, marginBottom: 8 }}>
-              Pidgin hits: {cultural_signals.pidgin_term_hits}
-            </div>
-            <div style={{ fontSize: 11, color: '#64748B', marginBottom: 4 }}>
-              Nigerian English Index
-            </div>
-            <div style={{ height: 6, background: '#1E1E2E', borderRadius: 3, overflow: 'hidden' }}>
-              <div style={{
-                height: '100%', background: '#22C55E', borderRadius: 3,
-                width: `${(cultural_signals.nigerian_english_index ?? 0) * 100}%`,
-                transition: reduced ? 'none' : 'width 0.6s ease',
-              }} />
+          <span className="text-2xl">🇳🇬</span>
+          <div className="flex-1">
+            <div className="text-[#22C55E] font-bold text-sm">Nigerian English detected</div>
+            <div className="text-[#64748B] text-xs mb-2">Pidgin hits: {cultural_signals.pidgin_term_hits}</div>
+            <div className="text-[11px] text-[#64748B] mb-1">Nigerian English Index</div>
+            <div className="h-1.5 bg-[#1E1E2E] rounded-sm overflow-hidden">
+              <div
+                className="h-full bg-[#22C55E] rounded-sm"
+                style={{
+                  width: `${(cultural_signals.nigerian_english_index ?? 0) * 100}%`,
+                  transition: reduced ? 'none' : 'width 0.6s ease',
+                }}
+              />
             </div>
             {cultural_signals?.code_switching_detected && (
-              <div style={{ fontSize: 11, color: '#22C55E', fontStyle: 'italic', marginTop: 8 }}>
+              <div className="text-[11px] text-[#22C55E] italic mt-2">
                 "Nigerian cultural context will be applied to all outputs"
               </div>
             )}

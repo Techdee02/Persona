@@ -1,30 +1,24 @@
 function ArchBox({ title, sub, accent }) {
   return (
-    <div style={{
-      background: '#13131A', border: `1px solid ${accent ?? '#1E1E2E'}`,
-      borderRadius: 10, padding: '12px 18px', textAlign: 'center', minWidth: 100,
-    }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#F8FAFC' }}>{title}</div>
-      {sub && <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{sub}</div>}
+    <div
+      className="bg-[#13131A] rounded-lg px-4 py-3 text-center min-w-[90px]"
+      style={{ border: `1px solid ${accent ?? '#1E1E2E'}` }}
+    >
+      <div className="text-sm font-bold text-[#F8FAFC]">{title}</div>
+      {sub && <div className="text-[11px] text-[#64748B] mt-0.5">{sub}</div>}
     </div>
   );
 }
 
 function Arrow() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', color: '#1E1E2E', fontSize: 20, padding: '0 4px' }}>→</div>
-  );
+  return <div className="text-[#1E1E2E] text-xl px-1">→</div>;
 }
 
 function MethodCard({ title, body }) {
   return (
-    <div style={{
-      flex: 1, minWidth: 260,
-      background: '#13131A', border: '1px solid #1E1E2E',
-      borderRadius: 12, padding: 24,
-    }}>
-      <div style={{ fontSize: 16, fontWeight: 700, color: '#F8FAFC', marginBottom: 10 }}>{title}</div>
-      <div style={{ fontSize: 14, color: '#64748B', lineHeight: 1.7 }}>{body}</div>
+    <div className="flex-1 min-w-[260px] bg-[#13131A] border border-[#1E1E2E] rounded-xl p-6">
+      <div className="text-base font-bold text-[#F8FAFC] mb-2">{title}</div>
+      <div className="text-sm text-[#64748B] leading-relaxed">{body}</div>
     </div>
   );
 }
@@ -56,20 +50,15 @@ const TASK_B_CRITERIA = [
 
 export default function About() {
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '48px 24px' }}>
-      <h1 style={{ fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 700, color: '#F8FAFC', textAlign: 'center', marginBottom: 48, letterSpacing: '-0.02em' }}>
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 md:py-12">
+      <h1 className="font-bold text-[#F8FAFC] text-center mb-10 tracking-tight" style={{ fontSize: 'clamp(24px, 4vw, 40px)' }}>
         How Persona Works
       </h1>
 
       {/* Architecture */}
-      <div style={{ marginBottom: 48 }}>
-        <div style={{ fontSize: 10, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20 }}>
-          Architecture
-        </div>
-        <div style={{
-          background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 24,
-          display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4, justifyContent: 'center',
-        }}>
+      <div className="mb-10">
+        <div className="text-[10px] text-[#64748B] uppercase tracking-widest mb-4">Architecture</div>
+        <div className="bg-[#13131A] border border-[#1E1E2E] rounded-xl p-4 md:p-6 flex items-center flex-wrap gap-1 justify-center overflow-x-auto">
           <ArchBox title="Browser" sub="React + Vite" accent="#6366F1" />
           <Arrow />
           <ArchBox title="Nginx" sub="Reverse Proxy" />
@@ -81,7 +70,7 @@ export default function About() {
       </div>
 
       {/* Method cards */}
-      <div style={{ display: 'flex', gap: 20, marginBottom: 48, flexWrap: 'wrap' }}>
+      <div className="flex flex-col sm:flex-row gap-4 mb-10">
         <MethodCard
           title="Review Simulation"
           body="Persona builds a psychological profile from a user's review history — extracting rating statistics, writing style, value keywords, and cultural signals. It then calibrates a predicted rating against the population mean and generates a culturally-aware review that mirrors the user's authentic voice."
@@ -92,74 +81,53 @@ export default function About() {
         />
       </div>
 
-      {/* Feature 12: Scoring Rubric */}
-      <div style={{ marginBottom: 48 }}>
-        <div style={{ fontSize: 24, fontWeight: 700, color: '#F8FAFC', marginBottom: 24 }}>Evaluation Criteria</div>
+      {/* Scoring Rubric */}
+      <div className="mb-10">
+        <div className="text-2xl font-bold text-[#F8FAFC] mb-6">Evaluation Criteria</div>
 
-        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 24 }}>
-          {/* Task A card */}
-          <div style={{
-            flex: 1, minWidth: 280,
-            background: '#13131A', border: '1px solid #1E1E2E',
-            borderTop: '3px solid #6366F1', borderRadius: 12, padding: 24,
-          }}>
-            <div style={{ fontSize: 11, color: '#6366F1', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, marginBottom: 16 }}>
-              Task A · User Modeling
-            </div>
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          {/* Task A */}
+          <div className="flex-1 min-w-[260px] bg-[#13131A] border border-[#1E1E2E] rounded-xl p-5 md:p-6" style={{ borderTop: '3px solid #6366F1' }}>
+            <div className="text-[11px] text-[#6366F1] uppercase tracking-widest font-semibold mb-4">Task A · User Modeling</div>
             {TASK_A_CRITERIA.map(({ name, method }) => (
-              <div key={name} style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid #1E1E2E' }}>
-                <div style={{ fontSize: 14, color: '#F8FAFC' }}>{name}</div>
-                <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{method}</div>
+              <div key={name} className="mb-3 pb-3 border-b border-[#1E1E2E]">
+                <div className="text-sm text-[#F8FAFC]">{name}</div>
+                <div className="text-[11px] text-[#64748B] mt-0.5">{method}</div>
               </div>
             ))}
           </div>
 
-          {/* Task B card */}
-          <div style={{
-            flex: 1, minWidth: 280,
-            background: '#13131A', border: '1px solid #1E1E2E',
-            borderTop: '3px solid #F59E0B', borderRadius: 12, padding: 24,
-          }}>
-            <div style={{ fontSize: 11, color: '#F59E0B', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, marginBottom: 16 }}>
-              Task B · Recommendation
-            </div>
+          {/* Task B */}
+          <div className="flex-1 min-w-[260px] bg-[#13131A] border border-[#1E1E2E] rounded-xl p-5 md:p-6" style={{ borderTop: '3px solid #F59E0B' }}>
+            <div className="text-[11px] text-[#F59E0B] uppercase tracking-widest font-semibold mb-4">Task B · Recommendation</div>
             {TASK_B_CRITERIA.map(({ name, method, pts }) => (
-              <div key={name} style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid #1E1E2E', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+              <div key={name} className="mb-3 pb-3 border-b border-[#1E1E2E] flex items-start justify-between gap-2">
                 <div>
-                  <div style={{ fontSize: 14, color: '#F8FAFC' }}>{name}</div>
-                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{method}</div>
+                  <div className="text-sm text-[#F8FAFC]">{name}</div>
+                  <div className="text-[11px] text-[#64748B] mt-0.5">{method}</div>
                 </div>
-                <span style={{ color: '#F59E0B', fontWeight: 700, fontSize: 13, fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>{pts}pts</span>
+                <span className="text-[#F59E0B] font-bold text-sm shrink-0" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{pts}pts</span>
               </div>
             ))}
-            <div style={{ textAlign: 'right', fontSize: 13, color: '#F8FAFC', fontWeight: 600, marginTop: 4 }}>
-              100 pts total
-            </div>
+            <div className="text-right text-sm text-[#F8FAFC] font-semibold mt-1">100 pts total</div>
           </div>
         </div>
 
         {/* Pull-quote */}
-        <div style={{ textAlign: 'center', padding: '0 24px' }}>
-          <p style={{ fontSize: 14, color: '#64748B', fontStyle: 'italic', lineHeight: 1.7, margin: 0 }}>
+        <div className="text-center px-4 md:px-8">
+          <p className="text-sm text-[#64748B] italic leading-relaxed">
             "A model score reflects what your machine did. A solution paper reveals what you understood. Both matter."
           </p>
-          <p style={{ fontSize: 12, color: '#64748B', marginTop: 6 }}>— DSN x BCT Judging Panel</p>
+          <p className="text-xs text-[#64748B] mt-1.5">— DSN x BCT Judging Panel</p>
         </div>
       </div>
 
       {/* Tech stack */}
       <div>
-        <div style={{ fontSize: 10, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>
-          Tech Stack
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <div className="text-[10px] text-[#64748B] uppercase tracking-widest mb-3">Tech Stack</div>
+        <div className="flex flex-wrap gap-2">
           {STACK.map(({ icon, label }) => (
-            <span key={label} style={{
-              background: '#13131A', border: '1px solid #1E1E2E',
-              borderRadius: 999, padding: '6px 14px',
-              fontSize: 12, color: '#64748B',
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}>
+            <span key={label} className="bg-[#13131A] border border-[#1E1E2E] rounded-full px-3 py-1.5 text-xs text-[#64748B] flex items-center gap-1.5">
               {icon} {label}
             </span>
           ))}

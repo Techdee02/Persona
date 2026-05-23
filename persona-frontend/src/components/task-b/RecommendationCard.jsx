@@ -10,72 +10,59 @@ export default function RecommendationCard({ item, rank, animationDelay }) {
   const name = item.metadata?.name ?? item.item_id;
 
   return (
-    <div style={{
-      background: '#13131A', border: '1px solid #1E1E2E', borderRadius: 12, padding: 16,
-      opacity: 0, animation: reduced ? 'none' : 'fadeSlideIn 0.35s ease forwards',
-      animationDelay: reduced ? '0ms' : `${animationDelay}ms`,
-    }}>
-      {/* Top row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <div style={{
-          width: 26, height: 26, borderRadius: '50%', background: '#F59E0B',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 11, fontWeight: 700, color: '#0A0A0F', flexShrink: 0,
-        }}>
+    <div
+      className="bg-[#13131A] border border-[#1E1E2E] rounded-xl p-4"
+      style={{
+        opacity: 0,
+        animation: reduced ? 'none' : 'fadeSlideIn 0.35s ease forwards',
+        animationDelay: reduced ? '0ms' : `${animationDelay}ms`,
+      }}
+    >
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="w-6 h-6 rounded-full bg-[#F59E0B] flex items-center justify-center text-[11px] font-bold text-[#0A0A0F] shrink-0">
           #{rank}
         </div>
-        <div style={{ flex: 1, height: 6, background: '#1E1E2E', borderRadius: 3, overflow: 'hidden' }}>
-          <div style={{
-            height: '100%', background: '#6366F1', borderRadius: 3,
-            width: `${Math.min(1, Math.max(0, item.score)) * 100}%`,
-            transition: reduced ? 'none' : 'width 0.6s ease',
-          }} />
+        <div className="flex-1 h-1.5 bg-[#1E1E2E] rounded-sm overflow-hidden">
+          <div
+            className="h-full bg-[#6366F1] rounded-sm"
+            style={{
+              width: `${Math.min(1, Math.max(0, item.score)) * 100}%`,
+              transition: reduced ? 'none' : 'width 0.6s ease',
+            }}
+          />
         </div>
       </div>
 
-      {/* Name */}
-      <div style={{ fontSize: 16, fontWeight: 600, color: '#F8FAFC', marginBottom: 6 }}>{name}</div>
+      <div className="text-base font-semibold text-[#F8FAFC] mb-1.5">{name}</div>
 
-      {/* Categories */}
       {categories.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
+        <div className="flex flex-wrap gap-1 mb-2">
           {categories.map(cat => (
-            <span key={cat} style={{
-              background: '#0A0A0F', border: '1px solid #1E1E2E',
-              borderRadius: 999, padding: '2px 8px', fontSize: 11, color: '#64748B',
-            }}>
+            <span key={cat} className="bg-[#0A0A0F] border border-[#1E1E2E] rounded-full px-2 py-0.5 text-[11px] text-[#64748B]">
               {cat}
             </span>
           ))}
         </div>
       )}
 
-      {/* Stars */}
       {stars > 0 && (
-        <div style={{ fontSize: 13, color: '#F59E0B', marginBottom: 10 }}>
+        <div className="text-sm text-[#F59E0B] mb-2.5">
           {'★'.repeat(Math.round(stars))}{'☆'.repeat(5 - Math.round(stars))} {stars.toFixed(1)}
         </div>
       )}
 
-      {/* Explanation accordion */}
       <button
         onClick={() => setOpen(o => !o)}
         aria-label="Toggle explanation"
-        style={{
-          width: '100%', background: 'none', border: 'none', padding: '6px 0 0',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          cursor: 'pointer', borderTop: '1px solid #1E1E2E',
-        }}
+        className="w-full bg-transparent border-none pt-1.5 flex items-center justify-between cursor-pointer border-t border-[#1E1E2E]"
       >
-        <span style={{ fontSize: 12, color: '#64748B' }}>Explanation</span>
+        <span className="text-xs text-[#64748B]">Explanation</span>
         <ChevronDown size={14} color="#64748B" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
       </button>
+
       {open && (
-        <div style={{
-          background: '#0A0A0F', borderRadius: '0 0 8px 8px', padding: '10px 12px',
-          borderLeft: '4px solid #6366F1', marginTop: 4,
-          fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#64748B',
-        }}>
+        <div className="bg-[#0A0A0F] rounded-b-lg px-3 py-2.5 border-l-4 border-[#6366F1] mt-1 text-[11px] text-[#64748B]"
+          style={{ fontFamily: 'JetBrains Mono, monospace' }}>
           {item.explanation}
         </div>
       )}
