@@ -142,8 +142,27 @@ Acceptance criteria:
 - LLM partial tool-call responses: agent plan fill-in ensures all 4 steps always execute
 - Codespace restart wipes /tmp: multi-checkpoint script saves to /workspaces after each run
 
+## Phase 7: Production Deployment ✓ Complete
+
+Goal: deploy the full stack to a public HTTPS endpoint for the hackathon judges.
+
+Deliverables (all delivered):
+- DigitalOcean Droplet (Ubuntu 22.04, 2 GB RAM, lon1) ✓
+- Vector store uploaded to DO Spaces (persona-space / lon1, 1.6 GB) ✓
+- entrypoint.sh auto-download validated on first container boot ✓
+- DuckDNS subdomain: personabackend.duckdns.org → 188.166.149.75 ✓
+- Let's Encrypt SSL cert via Certbot (expires 2026-08-21) ✓
+- Nginx HTTPS reverse proxy live ✓
+- Vercel frontend wired to HTTPS backend (VITE_API_URL updated) ✓
+- Full deployment guide: docs/DEPLOYMENT.md ✓
+
+Acceptance criteria:
+- https://personabackend.duckdns.org/health returns {"status":"ok"} ✓
+- Frontend at persona-eight-flax.vercel.app calls backend with no CORS/mixed-content errors ✓
+- Vector store auto-downloads from Spaces on fresh container boot ✓
+
 ## Open Questions
 
 - BERTScore: include in final evaluation report? (requires `bert-score` install)
 - Cross-domain retrieval domain weights: should Yelp or Amazon score higher for restaurant queries?
-- Upload 200k store to DigitalOcean Spaces for container auto-download on first boot?
+- SSL auto-renewal: add monthly cron job on droplet for `certbot renew`?
