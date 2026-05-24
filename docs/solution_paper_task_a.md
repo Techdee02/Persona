@@ -12,7 +12,7 @@
 
 ## Abstract
 
-We present **PERSONA**, a user modeling system that constructs rich psychological profiles from review histories and uses them to simulate behaviorally faithful star ratings and written reviews for unseen items. Rather than treating users as static preference vectors, PERSONA builds a five-layer behavioral twin — encoding rating calibration, vocabulary fingerprint, value priority graph, cultural register, and temporal trajectory — and uses these layers jointly during simulation. On the Yelp dataset, PERSONA achieves a rating RMSE of **0.71** against a mean-rating baseline of **1.14** (37% reduction) and a corpus ROUGE-L of **0.31** for generated text. For Nigerian-English users, cultural contextualization yields pidgin-inflected reviews scoring **87/100** on Cultural Accuracy. The system is fully containerized, production-deployed over HTTPS, and includes a cold-start module that bootstraps a working profile from four conversational questions.
+We present **PERSONA**, a user modeling system that constructs rich psychological profiles from review histories and uses them to simulate behaviorally faithful star ratings and written reviews for unseen items. Rather than treating users as static preference vectors, PERSONA builds a five-layer behavioral twin — encoding rating calibration, vocabulary fingerprint, value priority graph, cultural register, and temporal trajectory — and uses these layers jointly during simulation. On the Yelp dataset, PERSONA achieves a rating RMSE of **1.08** against a global-mean baseline of **1.11**, with the primary gains in behavioural fidelity: **81/100** composite fidelity score and a ROUGE-L of **0.31** on the LLM path. For Nigerian-English users, cultural contextualization yields pidgin-inflected reviews scoring **87/100** on Cultural Accuracy. The system is fully containerized, production-deployed over HTTPS, and includes a cold-start module that bootstraps a working profile from four conversational questions.
 
 ---
 
@@ -144,12 +144,12 @@ The bootstrapped profile is used identically to a history-derived one in all dow
 
 | System | RMSE ↓ | ROUGE-L ↑ | Fidelity ↑ |
 |---|---|---|---|
-| Global Mean Baseline | 1.14 | — | — |
-| User Mean Baseline | 0.89 | — | — |
-| PERSONA (template) | 0.72 | 0.28 | 74/100 |
-| **PERSONA (LLM)** | **0.71** | **0.31** | **81/100** |
+| Global Mean Baseline | 1.11 | — | — |
+| User Mean Baseline | 1.08 | — | — |
+| PERSONA (template) | 1.08 | 0.11 | 74/100 |
+| **PERSONA (LLM)** | **1.08** | **0.31** | **81/100** |
 
-The LLM path shows a strong fidelity gain (+7 points) driven primarily by Cultural Accuracy for Nigerian users, with a marginal RMSE improvement from LLM-guided rating correction.
+RMSE improvement over the global-mean baseline is modest (2.7%); the primary differentiation is in behavioural fidelity. The LLM path contributes a 7-point fidelity gain driven by Cultural Accuracy for Nigerian users. ROUGE-L gains on the LLM path reflect the model's ability to mirror the user's vocabulary and priorities in generated text.
 
 ### 5.3 Ablation Study
 
